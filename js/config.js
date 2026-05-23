@@ -4,13 +4,12 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBhyFEKTWGXxlwh0joCXlhYRdxEVpHoD0I",
-  authDomain: "bd-firebase-554f6.firebaseapp.com",
-  projectId: "bd-firebase-554f6",
-  storageBucket: "bd-firebase-554f6.firebasestorage.app",
-  messagingSenderId: "735665721367",
-  appId: "1:735665721367:web:8d1c9b309a3ef775f00c52",
-  measurementId: "G-VJC68VEY1C"
+  apiKey: "AIzaSyBjX8on25XqMZBTIZ9Rw1KK5KkZuqzk0iA",
+  authDomain: "floreriadientedeleon-365c9.firebaseapp.com",
+  projectId: "floreriadientedeleon-365c9",
+  storageBucket: "floreriadientedeleon-365c9.firebasestorage.app",
+  messagingSenderId: "593791307660",
+  appId: "1:593791307660:web:34c7d0077063fcb6c810a9"
 };
 
 const app = initializeApp(firebaseConfig);

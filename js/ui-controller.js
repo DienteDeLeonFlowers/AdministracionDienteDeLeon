@@ -4,9 +4,9 @@ import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/
 import { processToJpg } from './converter.js';
 import { logout } from './services/authService.js';
 import { protectRoute } from './services/authGuard.js';
-import { addCategory, toggleCategoryStatus, deleteCategory } from './services/categoryService.js';
-import { addOccasion, toggleOccasionStatus, deleteOccasion } from './services/occasionService.js';
-import { addProduct } from './services/productService.js';
+import { addCategory, updateCategory, toggleCategoryStatus, deleteCategory } from './services/categoryService.js';
+import { addOccasion, updateOccasion, toggleOccasionStatus, deleteOccasion } from './services/occasionService.js';
+import { addProduct, updateProduct, deleteProduct } from './services/productService.js';
 
 protectRoute();
 
@@ -40,12 +40,84 @@ document.addEventListener('click', (e) => {
 });
 
 function updateExclusiveLogic() {
-  const categoryVal      = document.getElementById('itemCategory').value;
-  const selectedOccasion = document.querySelector('input[name="occasion"]:checked');
+  const categoryVal        = document.getElementById('itemCategory').value;
+  const selectedOccasion   = document.querySelector('input[name="occasion"]:checked');
   const occasionsContainer = document.querySelector('.occasions-sect');
-
   occasionsContainer.classList.toggle('disabled-group', categoryVal !== '');
   categoryDropdown.classList.toggle('disabled-group', !!selectedOccasion);
+}
+
+const editModal     = document.getElementById('editModal');
+const modalTitle    = document.getElementById('modalTitle');
+const modalFields   = document.getElementById('modalFormFields');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const modalForm     = document.getElementById('modalEditForm');
+
+let currentEditFn = null;
+
+function openModal(title, fields, onSave) {
+  modalTitle.textContent = title;
+  modalFields.innerHTML  = fields;
+  currentEditFn          = onSave;
+  editModal.classList.add('active');
+
+  requestAnimationFrame(() => {
+    const first = modalFields.querySelector('input, textarea');
+    if (!first) return;
+    first.focus();
+    const len = first.value.length;
+    first.setSelectionRange(len, len);
+  });
+}
+
+function closeModal() {
+  editModal.classList.remove('active');
+  currentEditFn         = null;
+  modalFields.innerHTML = '';
+}
+
+closeModalBtn?.addEventListener('click', closeModal);
+editModal?.addEventListener('click', e => { if (e.target === editModal) closeModal(); });
+
+modalForm?.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!currentEditFn) return;
+  const btn = modalForm.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  try {
+    await currentEditFn();
+    closeModal();
+  } catch (err) {
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function inputField(id, value, placeholder) {
+  return `<div class="input-group" style="margin-bottom:0">
+    <input type="text" id="${id}" value="${value}" placeholder="${placeholder}" required>
+  </div>`;
+}
+
+function renderCatalogTable(data) {
+  const container = document.getElementById('catalogTableBody');
+  if (!container) return;
+  container.innerHTML = data.map(doc => `
+    <tr>
+      <td><img src="${doc.imageUrl}" class="td-img" alt="${doc.nombre}"></td>
+      <td>${doc.nombre}</td>
+      <td>${doc.categoria || doc.ocasiones || '—'}</td>
+      <td class="actions-cell">
+        <button class="btn-action btn-edit" onclick="editProduct('${doc.id}', \`${doc.nombre}\`, \`${doc.descripcion || ''}\`)">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="btn-action btn-delete" onclick="removeProduct('${doc.id}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
 }
 
 function renderTable(containerId, data, colName) {
@@ -61,6 +133,9 @@ function renderTable(containerId, data, colName) {
         </span>
       </td>
       <td class="actions-cell">
+        <button class="btn-action btn-edit" onclick="editItem('${colName}', '${doc.id}', \`${doc.nombre}\`)">
+          <i class="fa-solid fa-pen"></i>
+        </button>
         <button class="btn-action btn-delete" onclick="deleteItem('${colName}', '${doc.id}')">
           <i class="fa-solid fa-trash"></i>
         </button>
@@ -75,7 +150,43 @@ window.toggleStatus = async (col, id, stat) =>
 window.deleteItem = async (col, id) =>
   col === 'categorias' ? await deleteCategory(id) : await deleteOccasion(id);
 
-onSnapshot(query(collection(db, 'categorias'), orderBy('fecha', 'desc')), (snap) => {
+window.editItem = (col, id, nombre) => {
+  openModal(
+    col === 'categorias' ? 'Editar Categoría' : 'Editar Fecha Especial',
+    inputField('modalNombre', nombre, 'Nombre'),
+    async () => {
+      const val = document.getElementById('modalNombre').value.trim();
+      if (!val) return;
+      col === 'categorias' ? await updateCategory(id, val) : await updateOccasion(id, val);
+    }
+  );
+};
+
+window.editProduct = (id, nombre, descripcion) => {
+  openModal(
+    'Editar Arreglo',
+    `${inputField('modalNombre', nombre, 'Nombre del ramo')}
+     <div class="input-group" style="margin-bottom:0; margin-top:1rem">
+       <i class="fa-solid fa-align-left input-icon textarea-icon"></i>
+       <textarea id="modalDesc" placeholder="Descripción">${descripcion}</textarea>
+     </div>`,
+    async () => {
+      const nuevoNombre = document.getElementById('modalNombre').value.trim();
+      const nuevaDesc   = document.getElementById('modalDesc').value.trim();
+      if (!nuevoNombre) return;
+      await updateProduct(id, { nombre: nuevoNombre, descripcion: nuevaDesc });
+    }
+  );
+};
+
+window.removeProduct = async (id) => await deleteProduct(id);
+
+onSnapshot(query(collection(db, 'productos'), orderBy('fecha', 'desc')), snap => {
+  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  renderCatalogTable(data);
+});
+
+onSnapshot(query(collection(db, 'categorias'), orderBy('fecha', 'desc')), snap => {
   const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderTable('categoriesTableBody', data, 'categorias');
 
@@ -90,7 +201,7 @@ onSnapshot(query(collection(db, 'categorias'), orderBy('fecha', 'desc')), (snap)
 
   document.querySelectorAll('.dropdown-item').forEach(item => {
     item.onclick = () => {
-      document.getElementById('itemCategory').value          = item.getAttribute('data-value');
+      document.getElementById('itemCategory').value             = item.getAttribute('data-value');
       document.getElementById('dropdownSelectedText').innerText = item.innerText;
       categoryDropdown.classList.remove('active');
       updateExclusiveLogic();
@@ -98,7 +209,7 @@ onSnapshot(query(collection(db, 'categorias'), orderBy('fecha', 'desc')), (snap)
   });
 });
 
-onSnapshot(query(collection(db, 'ocasiones'), orderBy('fecha', 'desc')), (snap) => {
+onSnapshot(query(collection(db, 'ocasiones'), orderBy('fecha', 'desc')), snap => {
   const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   renderTable('occasionsTableBody', data, 'ocasiones');
 
@@ -127,11 +238,11 @@ onSnapshot(query(collection(db, 'ocasiones'), orderBy('fecha', 'desc')), (snap) 
   });
 });
 
-const itemImg       = document.getElementById('itemImg');
-const filePreview   = document.getElementById('file-name-preview');
-const imgPreview    = document.getElementById('imagePreview');
-const previewBox    = document.getElementById('imagePreviewContainer');
-const btnRemove     = document.getElementById('btnRemoveImage');
+const itemImg     = document.getElementById('itemImg');
+const filePreview = document.getElementById('file-name-preview');
+const imgPreview  = document.getElementById('imagePreview');
+const previewBox  = document.getElementById('imagePreviewContainer');
+const btnRemove   = document.getElementById('btnRemoveImage');
 
 itemImg?.addEventListener('change', () => {
   const file = itemImg.files[0];
@@ -146,19 +257,19 @@ itemImg?.addEventListener('change', () => {
 });
 
 btnRemove?.addEventListener('click', () => {
-  itemImg.value    = '';
-  imgPreview.src   = '';
+  itemImg.value           = '';
+  imgPreview.src          = '';
   filePreview.textContent = 'Ningún archivo seleccionado';
   previewBox.classList.remove('active');
 });
 
-document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
+document.getElementById('uploadForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const btn    = document.getElementById('submitBtn');
   const status = document.getElementById('status');
   try {
-    btn.disabled      = true;
-    status.innerText  = 'Procesando...';
+    btn.disabled     = true;
+    status.innerText = 'Procesando...';
     const jpgBlob = await processToJpg(itemImg.files[0]);
     const refImg  = ref(storage, `catalog/${Date.now()}.jpg`);
     const url     = await getDownloadURL((await uploadBytes(refImg, jpgBlob)).ref);
@@ -171,9 +282,9 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
       ocasiones:   document.querySelector('input[name="occasion"]:checked')?.value || null,
     });
 
-    status.innerText = '¡Publicado!';
+    status.innerText        = '¡Publicado!';
     e.target.reset();
-    imgPreview.src = '';
+    imgPreview.src          = '';
     previewBox.classList.remove('active');
     filePreview.textContent = 'Ningún archivo seleccionado';
     document.getElementById('dropdownSelectedText').innerText = 'Ninguna categoría';
@@ -185,15 +296,15 @@ document.getElementById('uploadForm')?.addEventListener('submit', async (e) => {
   }
 });
 
-document.getElementById('categoryForm')?.addEventListener('submit', async (e) => {
+document.getElementById('categoryForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  await addCategory(document.getElementById('newCategoryName').value);
+  await addCategory(document.getElementById('newCategoryName').value.trim());
   e.target.reset();
 });
 
-document.getElementById('occasionForm')?.addEventListener('submit', async (e) => {
+document.getElementById('occasionForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  await addOccasion(document.getElementById('newOccasionName').value);
+  await addOccasion(document.getElementById('newOccasionName').value.trim());
   e.target.reset();
 });
 

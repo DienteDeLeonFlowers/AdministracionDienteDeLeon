@@ -996,3 +996,30 @@ input[type="radio"] {
   pointer-events: none;
   filter: grayscale(1);
 }
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.status-badge.active {
+  background: rgba(0, 204, 82, 0.1);
+  color: #00a84d;
+  border: 1px solid rgba(0, 204, 82, 0.25);
+}
+
+.status-badge.inactive {
+  background: rgba(255, 59, 48, 0.08);
+  color: #cc2f27;
+  border: 1px solid rgba(255, 59, 48, 0.2);
+}
+
+.status-badge:hover {
+  opacity: 0.75;
+}

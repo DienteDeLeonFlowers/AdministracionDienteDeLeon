@@ -400,6 +400,11 @@ textarea:focus {
   user-select: none;
 }
 
+.disabled-label {
+  opacity: 0.35;
+  cursor: not-allowed !important;
+}
+
 .checkbox-label input {
   position: absolute;
   opacity: 0;
@@ -442,6 +447,13 @@ textarea:focus {
 
 .checkbox-label input:checked~.custom-checkbox:after {
   display: block;
+}
+
+input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  margin: 0;
 }
 
 .file-input-wrapper {
@@ -542,7 +554,7 @@ textarea:focus {
   cursor: pointer;
 }
 
-/* REPARACIÓN MÓVIL (Scroll y Botones) */
+/* CORRECCIÓN MÓVIL Y NAVEGACIÓN */
 .table-responsive { 
   width: 100%; 
   overflow-x: auto; 

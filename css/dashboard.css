@@ -662,20 +662,22 @@ table {
   font-size: 0.95rem;
 }
 
-th,
-td {
-  padding: 14px 16px;
-  border-bottom: 1px solid rgba(20, 36, 23, 0.06);
-  vertical-align: middle;
-  white-space: normal;
-  word-wrap: break-word;
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
 #panel-catalog table {
   min-width: 750px;
   table-layout: fixed;
+}
+
+#panel-catalog th,
+#panel-catalog td {
+  white-space: nowrap;
+}
+
+#panel-catalog td:nth-child(3) {
+  white-space: normal !important;
+  min-width: 250px;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 #panel-catalog th:nth-child(1),
@@ -711,12 +713,19 @@ td {
   table-layout: auto;
 }
 
-#panel-categories th:not(:first-child), 
+#panel-categories th:not(:first-child),
 #panel-categories td:not(:first-child),
-#panel-occasions th:not(:first-child), 
+#panel-occasions th:not(:first-child),
 #panel-occasions td:not(:first-child) {
   width: 1%;
   white-space: nowrap;
+}
+
+th,
+td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(20, 36, 23, 0.06);
+  vertical-align: middle;
 }
 
 th {
@@ -758,20 +767,21 @@ th {
   opacity: 0.75;
 }
 
+/* Corregido: celda estándar sin flex para alineación correcta con borde */
 .actions-cell {
-  display: flex;
-  flex-direction: row !important;
-  gap: 8px;
-  align-items: center;
+  vertical-align: middle;
+  padding: 14px 16px;
 }
 
 .btn-action {
+  display: inline-block;
   border: none;
   background: transparent;
   padding: 8px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
+  vertical-align: middle;
 }
 
 .btn-edit {
@@ -843,8 +853,9 @@ th {
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 20px;
-  padding-top: 4px;
+  margin-top: 2rem;
+  padding-bottom: 1rem;
+  width: 100%;
 }
 
 .btn-page {

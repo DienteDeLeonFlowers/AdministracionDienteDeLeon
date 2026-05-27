@@ -442,13 +442,17 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
   const itemName = document.getElementById('itemName');
   const itemDesc = document.getElementById('itemDesc');
   const itemCategory = document.getElementById('itemCategory');
+  
   try {
     btn.disabled = true;
+    status.style.color = 'inherit';
     status.innerText = 'Procesando...';
+    
     const webpBlob = await processToWebp(itemImg.files[0]);
     const refImg = ref(storage, `catalog/${Date.now()}.webp`);
     const uploadResult = await uploadBytes(refImg, webpBlob);
     const url = await getDownloadURL(uploadResult.ref);
+    
     await addProduct({
       nombre: itemName.value,
       descripcion: itemDesc.value,
@@ -457,7 +461,14 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
       ocasiones: selectedOccasion?.value || null,
       fecha: new Date().toISOString()
     });
-    status.innerText = '';
+    
+    await loadCategories(true);
+    await loadOccasions(true);
+    
+    status.innerText = '¡Arreglo subido con éxito!';
+    status.style.color = '#00a84d';
+    setTimeout(() => { status.innerText = ''; }, 3000);
+    
     e.target.reset();
     document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
     imagePreviewContainer.classList.remove('active');
@@ -468,6 +479,7 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
     fetchPage(1);
   } catch (err) {
     status.innerText = 'Error: ' + err.message;
+    status.style.color = '#ff3b30';
   } finally {
     btn.disabled = false;
   }

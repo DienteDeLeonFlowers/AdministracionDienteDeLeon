@@ -771,10 +771,11 @@ th {
   opacity: 0.75;
 }
 
+/* Alineación corregida: sin flex, comportamiento de tabla nativo */
 .actions-cell {
   vertical-align: middle;
   padding: 14px 16px;
-  white-space: nowrap !important;
+  white-space: nowrap;
 }
 
 .btn-action {

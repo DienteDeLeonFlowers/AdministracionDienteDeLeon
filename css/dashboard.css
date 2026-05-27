@@ -652,7 +652,6 @@ input[type="radio"] {
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: none;
-  touch-action: pan-x;
 }
 
 table {
@@ -662,29 +661,47 @@ table {
   font-size: 0.95rem;
 }
 
-#panel-catalog table {
-  min-width: 600px;
-  table-layout: fixed;
-}
-
-#panel-categories table,
-#panel-occasions table {
-  min-width: 100%;
-  table-layout: auto;
-}
-
-#panel-categories th:not(:first-child), 
-#panel-categories td:not(:first-child),
-#panel-occasions th:not(:first-child), 
-#panel-occasions td:not(:first-child) {
-  width: 1%;
-  white-space: nowrap;
-}
-
 th,
 td {
   padding: 14px 16px;
   border-bottom: 1px solid rgba(20, 36, 23, 0.06);
+  vertical-align: middle;
+}
+
+#panel-catalog table {
+  min-width: 700px;
+}
+
+#panel-catalog th,
+#panel-catalog td {
+  white-space: nowrap;
+}
+
+#panel-catalog td:nth-child(3) {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#panel-categories table,
+#panel-occasions table {
+  width: 100%;
+  min-width: 100%;
+}
+
+#panel-categories th,
+#panel-categories td,
+#panel-occasions th,
+#panel-occasions td {
+  white-space: normal;
+}
+
+#panel-categories th:not(:first-child),
+#panel-categories td:not(:first-child),
+#panel-occasions th:not(:first-child),
+#panel-occasions td:not(:first-child) {
+  width: 1%;
   white-space: nowrap;
 }
 

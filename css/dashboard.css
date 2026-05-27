@@ -717,6 +717,14 @@ table {
   table-layout: auto;
 }
 
+#panel-categories th:not(:first-child),
+#panel-categories td:not(:first-child),
+#panel-occasions th:not(:first-child),
+#panel-occasions td:not(:first-child) {
+  width: 1%;
+  white-space: nowrap;
+}
+
 th,
 td {
   padding: 14px 16px;
@@ -763,11 +771,10 @@ th {
   opacity: 0.75;
 }
 
-/* Alineación de botones */
 .actions-cell {
-  display: table-cell !important;
-  vertical-align: middle !important;
+  vertical-align: middle;
   padding: 14px 16px;
+  white-space: nowrap !important;
 }
 
 .btn-action {
@@ -1144,6 +1151,7 @@ th {
   }
   .actions-cell {
     gap: 4px;
+    padding: 10px 8px;
   }
   .btn-action {
     padding: 6px;

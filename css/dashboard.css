@@ -23,6 +23,11 @@
   100% { box-shadow: 0 0 0px rgba(0, 204, 82, 0); border-color: transparent; }
 }
 
+
+body {
+  overscroll-behavior-x: none;
+}
+
 body.loading {
   visibility: hidden;
   opacity: 0;
@@ -647,10 +652,10 @@ input[type="radio"] {
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  overscroll-behavior-x: none;
+  overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: auto;
 }
 
 table {
@@ -923,6 +928,8 @@ th {
     overflow: hidden;
   }
 
+  
+
   .sidebar-panel {
     width: 100%;
     height: auto;
@@ -1154,10 +1161,10 @@ th {
 
 @media (max-width: 860px) {
   .management-card {
-    touch-action: pan-y;
+    touch-action: auto;
   }
 
   .table-responsive {
-    touch-action: pan-x;
+    touch-action: auto;
   }
 }

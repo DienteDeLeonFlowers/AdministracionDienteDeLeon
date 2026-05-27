@@ -24,7 +24,8 @@
 }
 
 body {
-  overscroll-behavior-x: none;
+  overscroll-behavior: none;
+  touch-action: pan-y;
 }
 
 body.loading {

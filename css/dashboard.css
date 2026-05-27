@@ -1,60 +1,26 @@
 @import 'base.css';
 
 @keyframes fadeInMobileFriendly {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes buttonShimmer {
-  0% {
-    left: -150%;
-  }
-
-  50% {
-    left: 150%;
-  }
-
-  100% {
-    left: 150%;
-  }
+  0% { left: -150%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
 }
 
 @keyframes buttonGlowPulse {
-  0% {
-    box-shadow: 0 4px 10px rgba(197, 155, 39, 0.2);
-  }
-
-  50% {
-    box-shadow: 0 6px 20px rgba(197, 155, 39, 0.4);
-  }
-
-  100% {
-    box-shadow: 0 4px 10px rgba(197, 155, 39, 0.2);
-  }
+  0% { box-shadow: 0 4px 10px rgba(197, 155, 39, 0.2); }
+  50% { box-shadow: 0 6px 20px rgba(197, 155, 39, 0.4); }
+  100% { box-shadow: 0 4px 10px rgba(197, 155, 39, 0.2); }
 }
 
 @keyframes indicatorGlow {
-  0% {
-    box-shadow: 0 0 0px rgba(0, 204, 82, 0);
-    border-color: transparent;
-  }
-
-  50% {
-    box-shadow: 0 0 8px 1px rgba(0, 204, 82, 0.18), 0 0 3px 0px rgba(0, 204, 82, 0.10);
-    border-color: rgba(0, 204, 82, 0.22);
-  }
-
-  100% {
-    box-shadow: 0 0 0px rgba(0, 204, 82, 0);
-    border-color: transparent;
-  }
+  0%   { box-shadow: 0 0 0px rgba(0, 204, 82, 0); border-color: transparent; }
+  50%  { box-shadow: 0 0 8px 1px rgba(0, 204, 82, 0.18), 0 0 3px 0px rgba(0, 204, 82, 0.10); border-color: rgba(0, 204, 82, 0.22); }
+  100% { box-shadow: 0 0 0px rgba(0, 204, 82, 0); border-color: transparent; }
 }
 
 body.loading {
@@ -478,13 +444,6 @@ textarea:focus {
   display: block;
 }
 
-input[type="radio"] {
-  width: 18px;
-  height: 18px;
-  cursor: pointer;
-  margin: 0;
-}
-
 .file-input-wrapper {
   position: relative;
   width: 100%;
@@ -583,11 +542,12 @@ input[type="radio"] {
   cursor: pointer;
 }
 
-.table-responsive {
-  width: 100%;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
+/* REPARACIÓN MÓVIL (Scroll y Botones) */
+.table-responsive { 
+  width: 100%; 
+  overflow-x: auto; 
+  overscroll-behavior-x: contain; 
+  -webkit-overflow-scrolling: touch; 
 }
 
 table {
@@ -597,8 +557,7 @@ table {
   font-size: 0.95rem;
 }
 
-th,
-td {
+th, td {
   padding: 14px 16px;
   border-bottom: 1px solid rgba(20, 36, 23, 0.06);
   white-space: nowrap;
@@ -785,6 +744,7 @@ th {
   inset: 0;
   background: rgba(11, 20, 13, 0.4);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 999;
   display: none;
   align-items: center;
@@ -880,6 +840,7 @@ th {
   .dashboard-wrapper {
     flex-direction: column;
     height: 100vh;
+    height: 100dvh;
     overflow: hidden;
   }
 
@@ -894,6 +855,7 @@ th {
     position: relative;
     background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     z-index: 100;
   }
 
@@ -944,13 +906,19 @@ th {
     pointer-events: none;
     transform: translateX(calc(var(--indicator-index) * (100% + 4px)));
     transition: transform 0.42s cubic-bezier(0.25, 1, 0.5, 1);
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.65) 50%, rgba(255, 255, 255, 0.80) 100%);
+    background: linear-gradient(145deg,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(255, 255, 255, 0.65) 50%,
+        rgba(255, 255, 255, 0.80) 100%);
     backdrop-filter: blur(20px) saturate(1.8) brightness(1.12);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8) brightness(1.12);
     border-top: 1px solid rgba(255, 255, 255, 0.95);
     border-left: 1px solid rgba(255, 255, 255, 0.75);
     border-right: 1px solid rgba(255, 255, 255, 0.35);
     border-bottom: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1), inset 0 -1px 0 rgba(255, 255, 255, 0.3);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.3);
   }
 
   .nav-indicator::after {
@@ -1031,8 +999,7 @@ th {
     font-size: 0.8rem;
   }
 
-  th,
-  td {
+  th, td {
     padding: 10px 8px;
   }
 

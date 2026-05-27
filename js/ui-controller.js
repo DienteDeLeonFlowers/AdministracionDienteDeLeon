@@ -259,6 +259,7 @@ window.deleteItem = async (col, id) => {
     clearCache(col === 'categorias' ? 'cats' : 'occs');
     col === 'categorias' ? loadCategories(true) : loadOccasions(true);
   });
+  document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
 
 window.editItem = (col, id, nombre) => {
@@ -303,6 +304,7 @@ window.removeProduct = async (id, imageUrl) => {
       console.error("Error al eliminar:", err);
     }
   });
+  document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
 
 const categoryDropdown = document.getElementById('categoryDropdown');
@@ -328,6 +330,8 @@ const modalForm = document.getElementById('modalEditForm');
 let currentEditFn = null;
 
 function openModal(title, fields, onSave) {
+  const btn = document.getElementById('modalSubmitBtn');
+  if(btn) btn.className = 'btn-primary';
   modalTitle.textContent = title;
   modalFields.innerHTML = fields;
   currentEditFn = onSave;

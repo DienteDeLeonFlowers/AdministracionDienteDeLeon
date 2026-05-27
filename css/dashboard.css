@@ -1054,7 +1054,7 @@ th {
     transform: translateX(calc(var(--indicator-index) * 100%));
     transition: transform 0.42s cubic-bezier(0.25, 1, 0.5, 1);
     background: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
   .nav-indicator::after {
     content: '';
@@ -1073,6 +1073,8 @@ th {
     padding: 10px;
     z-index: 2;
     background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
   .menu-btn span {
     display: none;
@@ -1139,7 +1141,6 @@ th {
   }
   .td-img {
     width: 36px;
-    height: 36px;
   }
   .actions-cell {
     gap: 4px;

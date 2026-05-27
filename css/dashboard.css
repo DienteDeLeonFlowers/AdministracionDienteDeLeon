@@ -652,14 +652,33 @@ input[type="radio"] {
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: none;
+  touch-action: pan-x;
 }
 
 table {
   width: 100%;
-  min-width: 600px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.95rem;
+}
+
+#panel-catalog table {
+  min-width: 600px;
+  table-layout: fixed;
+}
+
+#panel-categories table,
+#panel-occasions table {
+  min-width: 100%;
+  table-layout: auto;
+}
+
+#panel-categories th:not(:first-child), 
+#panel-categories td:not(:first-child),
+#panel-occasions th:not(:first-child), 
+#panel-occasions td:not(:first-child) {
+  width: 1%;
+  white-space: nowrap;
 }
 
 th,

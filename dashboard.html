@@ -47,7 +47,7 @@
     </aside>
 
     <main class="content-panel">
-      
+
       <section id="panel-catalog" class="crud-section active">
         <div class="dashboard-card">
           <h2>Subir Nuevo Arreglo</h2>
@@ -60,22 +60,20 @@
               <i class="fa-solid fa-align-left input-icon textarea-icon"></i>
               <textarea id="itemDesc" placeholder="Descripción / Receta floral" required></textarea>
             </div>
-            
+
             <div class="custom-dropdown" id="categoryDropdown">
               <div class="dropdown-trigger">
                 <i class="fa-solid fa-layer-group dropdown-icon-left"></i>
                 <span id="dropdownSelectedText">Ninguna categoría</span>
                 <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
               </div>
-              <ul class="dropdown-menu" id="dropdownMenuCategories">
-              </ul>
+              <ul class="dropdown-menu" id="dropdownMenuCategories"></ul>
               <input type="hidden" id="itemCategory" value="">
             </div>
 
             <div class="occasions-sect">
               <label class="sect-title"><i class="fa-solid fa-calendar-check"></i> Fechas Especiales / Ocasiones</label>
-              <div class="checkbox-grid" id="checkboxGridOccasions">
-              </div>
+              <div class="checkbox-grid" id="checkboxGridOccasions"></div>
             </div>
 
             <div class="file-input-wrapper">
@@ -91,6 +89,10 @@
               <button type="button" class="btn-remove-image" id="btnRemoveImage"><i class="fa-solid fa-xmark"></i></button>
               <img src="" alt="Vista previa" id="imagePreview">
             </div>
+            
+            <div id="validationMessage" class="validation-error" style="color: #c0392b; margin-bottom: 1rem; display: none;">
+              <i class="fa-solid fa-circle-exclamation"></i> Por favor, selecciona una categoría o una fecha especial.
+            </div>
 
             <button type="submit" id="submitBtn" class="btn-primary">Publicar en Catálogo</button>
             <div id="status"></div>
@@ -99,19 +101,31 @@
 
         <div class="management-card">
           <h3>Arreglos Publicados</h3>
+
+          <div class="filter-bar">
+            <div class="input-group">
+              <i class="fa-solid fa-magnifying-glass input-icon"></i>
+              <input type="text" id="searchInput" placeholder="Buscar por nombre..." oninput="applyFilters()">
+            </div>
+            <select id="filterCategory" onchange="applyFilters()">
+              <option value="">Todas las categorías/ocasiones</option>
+            </select>
+          </div>
+
           <div class="table-responsive">
             <table>
               <thead>
                 <tr>
                   <th>Imagen</th>
                   <th>Nombre</th>
+                  <th>Descripción</th>
                   <th>Clasificación</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
-              <tbody id="catalogTableBody">
-              </tbody>
+              <tbody id="catalogTableBody"></tbody>
             </table>
+            <div id="paginationBar" class="pagination-bar"></div>
           </div>
         </div>
       </section>
@@ -138,8 +152,7 @@
                   <th>Acciones</th>
                 </tr>
               </thead>
-              <tbody id="categoriesTableBody">
-              </tbody>
+              <tbody id="categoriesTableBody"></tbody>
             </table>
           </div>
         </div>
@@ -167,13 +180,11 @@
                   <th>Acciones</th>
                 </tr>
               </thead>
-              <tbody id="occasionsTableBody">
-              </tbody>
+              <tbody id="occasionsTableBody"></tbody>
             </table>
           </div>
         </div>
       </section>
-
     </main>
   </div>
 
@@ -190,6 +201,5 @@
 
   <script type="module" src="js/navigation.js"></script>
   <script type="module" src="js/ui-controller.js"></script>
-  
 </body>
 </html>

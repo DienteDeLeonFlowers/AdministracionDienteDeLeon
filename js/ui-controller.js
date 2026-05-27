@@ -1,7 +1,7 @@
 import { db, storage } from './config.js';
-import { ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-import { collection, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { processToJpg } from './converter.js';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { collection, query, orderBy, limit, startAfter, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { processToWebp } from './converter.js';
 import { logout } from './services/authService.js';
 import { protectRoute } from './services/authGuard.js';
 import { addCategory, updateCategory, toggleCategoryStatus, deleteCategory } from './services/categoryService.js';
@@ -10,8 +10,17 @@ import { addProduct, updateProduct, deleteProduct } from './services/productServ
 
 protectRoute();
 
+let allProducts = [];
+let pageSnapshots = [null];
+let currentPage = 1;
+const PAGE_SIZE = 10;
+const CACHE_TTL = 5 * 60 * 1000;
 const INACTIVITY_TIME = 15 * 60 * 1000;
 let inactivityTimeout;
+
+const itemImg = document.getElementById('itemImg');
+const imagePreview = document.getElementById('imagePreview');
+const imagePreviewContainer = document.getElementById('imagePreviewContainer');
 
 function resetInactivityTimer() {
   clearTimeout(inactivityTimeout);
@@ -26,78 +35,106 @@ function resetInactivityTimer() {
 });
 resetInactivityTimer();
 
-const categoryDropdown = document.getElementById('categoryDropdown');
-const dropdownTrigger  = document.querySelector('.dropdown-trigger');
-
-dropdownTrigger?.addEventListener('click', () => {
-  categoryDropdown.classList.toggle('active');
-});
-
-document.addEventListener('click', (e) => {
-  if (categoryDropdown && !categoryDropdown.contains(e.target)) {
-    categoryDropdown.classList.remove('active');
-  }
-});
-
-function updateExclusiveLogic() {
-  const categoryVal        = document.getElementById('itemCategory').value;
-  const selectedOccasion   = document.querySelector('input[name="occasion"]:checked');
-  const occasionsContainer = document.querySelector('.occasions-sect');
-  occasionsContainer.classList.toggle('disabled-group', categoryVal !== '');
-  categoryDropdown.classList.toggle('disabled-group', !!selectedOccasion);
+function getCached(key) {
+  try {
+    const data = sessionStorage.getItem(key);
+    const ts = sessionStorage.getItem(key + '_ts');
+    if (data && ts && Date.now() - Number(ts) < CACHE_TTL) {
+      return JSON.parse(data);
+    }
+  } catch (_) {}
+  return null;
 }
 
-const editModal     = document.getElementById('editModal');
-const modalTitle    = document.getElementById('modalTitle');
-const modalFields   = document.getElementById('modalFormFields');
-const closeModalBtn = document.getElementById('closeModalBtn');
-const modalForm     = document.getElementById('modalEditForm');
+function setCache(key, data) {
+  try {
+    sessionStorage.setItem(key, JSON.stringify(data));
+    sessionStorage.setItem(key + '_ts', Date.now());
+  } catch (_) {}
+}
 
-let currentEditFn = null;
+function clearCache(key) {
+  sessionStorage.removeItem(key);
+  sessionStorage.removeItem(key + '_ts');
+}
 
-function openModal(title, fields, onSave) {
-  modalTitle.textContent = title;
-  modalFields.innerHTML  = fields;
-  currentEditFn          = onSave;
-  editModal.classList.add('active');
+function getClasificacionNombre(catId, occId) {
+  const cats = getCached('cats') || [];
+  const occs = getCached('occs') || [];
+  const categoria = cats.find(c => c.id === catId);
+  const ocasion = occs.find(o => o.id === occId);
+  return (categoria ? categoria.nombre : '') || (ocasion ? ocasion.nombre : '') || '—';
+}
 
-  requestAnimationFrame(() => {
-    const first = modalFields.querySelector('input, textarea');
-    if (!first) return;
-    first.focus();
-    const len = first.value.length;
-    first.setSelectionRange(len, len);
+async function loadCategories(forceRefresh = false) {
+  if (!forceRefresh) {
+    const cached = getCached('cats');
+    if (cached) {
+      renderTable('categoriesTableBody', cached, 'categorias');
+      buildCategoryDropdown(cached);
+      updateFilterSelects();
+      return;
+    }
+  }
+  const snap = await getDocs(collection(db, 'categorias'));
+  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  setCache('cats', data);
+  renderTable('categoriesTableBody', data, 'categorias');
+  buildCategoryDropdown(data);
+  updateFilterSelects();
+}
+
+async function loadOccasions(forceRefresh = false) {
+  if (!forceRefresh) {
+    const cached = getCached('occs');
+    if (cached) {
+      renderTable('occasionsTableBody', cached, 'ocasiones');
+      buildOccasionCheckboxes(cached);
+      updateFilterSelects();
+      return;
+    }
+  }
+  const snap = await getDocs(collection(db, 'ocasiones'));
+  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  setCache('occs', data);
+  renderTable('occasionsTableBody', data, 'ocasiones');
+  buildOccasionCheckboxes(data);
+  updateFilterSelects();
+}
+
+function buildCategoryDropdown(data) {
+  const menu = document.getElementById('dropdownMenuCategories');
+  if (!menu) return;
+  menu.innerHTML = `<li class="dropdown-item" data-value="">Ninguna categoría</li>` +
+    data.filter(d => d.activo).map(d => `<li class="dropdown-item" data-value="${d.id}">${d.nombre}</li>`).join('');
+  document.querySelectorAll('.dropdown-item').forEach(item => {
+    item.onclick = () => {
+      document.getElementById('itemCategory').value = item.getAttribute('data-value');
+      document.getElementById('dropdownSelectedText').innerText = item.innerText;
+      categoryDropdown.classList.remove('active');
+      updateExclusiveLogic();
+    };
   });
 }
 
-function closeModal() {
-  editModal.classList.remove('active');
-  currentEditFn         = null;
-  modalFields.innerHTML = '';
+function buildOccasionCheckboxes(data) {
+  const grid = document.getElementById('checkboxGridOccasions');
+  if (!grid) return;
+  grid.innerHTML = data.filter(d => d.activo).map(d =>
+    `<label class="checkbox-label"><input type="radio" name="occasion" value="${d.id}"><span class="custom-checkbox"></span>${d.nombre}</label>`
+  ).join('');
+  document.querySelectorAll('input[name="occasion"]').forEach(cb => cb.addEventListener('click', updateExclusiveLogic));
 }
 
-closeModalBtn?.addEventListener('click', closeModal);
-editModal?.addEventListener('click', e => { if (e.target === editModal) closeModal(); });
-
-modalForm?.addEventListener('submit', async e => {
-  e.preventDefault();
-  if (!currentEditFn) return;
-  const btn = modalForm.querySelector('button[type="submit"]');
-  btn.disabled = true;
-  try {
-    await currentEditFn();
-    closeModal();
-  } catch (err) {
-    console.error(err);
-  } finally {
-    btn.disabled = false;
-  }
-});
-
-function inputField(id, value, placeholder) {
-  return `<div class="input-group" style="margin-bottom:0">
-    <input type="text" id="${id}" value="${value}" placeholder="${placeholder}" required>
-  </div>`;
+async function updateFilterSelects() {
+  const select = document.getElementById('filterCategory');
+  if (!select) return;
+  const cats = getCached('cats') || [];
+  const occs = getCached('occs') || [];
+  let options = '<option value="">Todas las categorías/ocasiones</option>';
+  cats.forEach(d => options += `<option value="${d.id}">${d.nombre}</option>`);
+  occs.forEach(d => options += `<option value="${d.id}">${d.nombre}</option>`);
+  select.innerHTML = options;
 }
 
 function renderCatalogTable(data) {
@@ -105,19 +142,84 @@ function renderCatalogTable(data) {
   if (!container) return;
   container.innerHTML = data.map(doc => `
     <tr>
-      <td><img src="${doc.imageUrl}" class="td-img" alt="${doc.nombre}"></td>
+      <td><img src="${doc.imageUrl}" class="td-img" alt="${doc.nombre}" loading="lazy"></td>
       <td>${doc.nombre}</td>
-      <td>${doc.categoria || doc.ocasiones || '—'}</td>
+      <td>${doc.descripcion || '—'}</td>
+      <td>${getClasificacionNombre(doc.categoria, doc.ocasiones)}</td>
       <td class="actions-cell">
         <button class="btn-action btn-edit" onclick="editProduct('${doc.id}', \`${doc.nombre}\`, \`${doc.descripcion || ''}\`)">
           <i class="fa-solid fa-pen"></i>
         </button>
-        <button class="btn-action btn-delete" onclick="removeProduct('${doc.id}')">
+        <button class="btn-action btn-delete" onclick="removeProduct('${doc.id}', '${doc.imageUrl}')">
           <i class="fa-solid fa-trash"></i>
         </button>
       </td>
     </tr>
   `).join('');
+}
+
+window.applyFilters = () => {
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  const filterVal = document.getElementById('filterCategory').value;
+  const filtered = allProducts.filter(p => {
+    const matchesSearch = p.nombre.toLowerCase().includes(searchTerm);
+    const matchesCat = filterVal === "" || p.categoria === filterVal || p.ocasiones === filterVal;
+    return matchesSearch && matchesCat;
+  });
+  renderCatalogTable(filtered);
+};
+
+async function fetchPage(page) {
+  const cursor = pageSnapshots[page - 1];
+  let q = query(collection(db, 'productos'), orderBy('fecha', 'desc'), limit(PAGE_SIZE));
+  if (cursor) {
+    q = query(collection(db, 'productos'), orderBy('fecha', 'desc'), startAfter(cursor), limit(PAGE_SIZE));
+  }
+  const snap = await getDocs(q);
+  if (snap.empty && page > 1) return;
+  if (snap.docs.length > 0 && !pageSnapshots[page]) {
+    pageSnapshots[page] = snap.docs[snap.docs.length - 1];
+  }
+  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  allProducts = data;
+  currentPage = page;
+  const hasMore = snap.docs.length === PAGE_SIZE;
+  const totalPages = hasMore ? Math.max(pageSnapshots.filter(Boolean).length, page + 1) : page;
+  renderCatalogTable(allProducts);
+  renderPagination(currentPage, totalPages, hasMore);
+}
+
+function renderPagination(current, total, hasMore) {
+  const wrap = document.getElementById('paginationBar');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  const makeBtn = (html, page, extraClass = '') => {
+    const b = document.createElement('button');
+    b.className = 'btn-page' + (extraClass ? ' ' + extraClass : '');
+    b.innerHTML = html;
+    if (page !== null) b.addEventListener('click', () => fetchPage(page));
+    return b;
+  };
+  const prevBtn = makeBtn('<i class="fa-solid fa-chevron-left"></i>', current - 1);
+  if (current === 1) prevBtn.disabled = true;
+  wrap.appendChild(prevBtn);
+  let pages = [];
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (current > 3) pages.push('...');
+    for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) pages.push(i);
+    if (current < total - 2) pages.push('...');
+    pages.push(total);
+  }
+  pages.forEach(p => {
+    if (p === '...') wrap.appendChild(document.createElement('span'));
+    else wrap.appendChild(makeBtn(p, p, p === current ? 'active' : ''));
+  });
+  const nextBtn = makeBtn('<i class="fa-solid fa-chevron-right"></i>', current + 1);
+  if (!hasMore && current === total) nextBtn.disabled = true;
+  wrap.appendChild(nextBtn);
 }
 
 function renderTable(containerId, data, colName) {
@@ -127,8 +229,7 @@ function renderTable(containerId, data, colName) {
     <tr>
       <td>${doc.nombre}</td>
       <td>
-        <span class="status-badge ${doc.activo ? 'active' : 'inactive'}"
-              onclick="toggleStatus('${colName}', '${doc.id}', ${doc.activo})">
+        <span class="status-badge ${doc.activo ? 'active' : 'inactive'}" onclick="toggleStatus('${colName}', '${doc.id}', ${doc.activo})">
           ${doc.activo ? 'Activa' : 'Inactiva'}
         </span>
       </td>
@@ -144,151 +245,192 @@ function renderTable(containerId, data, colName) {
   `).join('');
 }
 
-window.toggleStatus = async (col, id, stat) =>
+window.toggleStatus = async (col, id, stat) => {
   col === 'categorias' ? await toggleCategoryStatus(id, stat) : await toggleOccasionStatus(id, stat);
+  clearCache(col === 'categorias' ? 'cats' : 'occs');
+  col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+};
 
-window.deleteItem = async (col, id) =>
+window.deleteItem = async (col, id) => {
   col === 'categorias' ? await deleteCategory(id) : await deleteOccasion(id);
+  clearCache(col === 'categorias' ? 'cats' : 'occs');
+  col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+};
 
 window.editItem = (col, id, nombre) => {
-  openModal(
-    col === 'categorias' ? 'Editar Categoría' : 'Editar Fecha Especial',
+  openModal(col === 'categorias' ? 'Editar Categoría' : 'Editar Fecha Especial',
     inputField('modalNombre', nombre, 'Nombre'),
     async () => {
       const val = document.getElementById('modalNombre').value.trim();
       if (!val) return;
       col === 'categorias' ? await updateCategory(id, val) : await updateOccasion(id, val);
+      clearCache(col === 'categorias' ? 'cats' : 'occs');
+      col === 'categorias' ? loadCategories(true) : loadOccasions(true);
     }
   );
 };
 
 window.editProduct = (id, nombre, descripcion) => {
-  openModal(
-    'Editar Arreglo',
+  openModal('Editar Arreglo',
     `${inputField('modalNombre', nombre, 'Nombre del ramo')}
-     <div class="input-group" style="margin-bottom:0; margin-top:1rem">
-       <i class="fa-solid fa-align-left input-icon textarea-icon"></i>
+     <div class="input-group" style="margin-top:1rem">
        <textarea id="modalDesc" placeholder="Descripción">${descripcion}</textarea>
      </div>`,
     async () => {
       const nuevoNombre = document.getElementById('modalNombre').value.trim();
-      const nuevaDesc   = document.getElementById('modalDesc').value.trim();
+      const nuevaDesc = document.getElementById('modalDesc').value.trim();
       if (!nuevoNombre) return;
       await updateProduct(id, { nombre: nuevoNombre, descripcion: nuevaDesc });
+      fetchPage(currentPage);
     }
   );
 };
 
-window.removeProduct = async (id) => await deleteProduct(id);
+window.removeProduct = async (id, imageUrl) => {
+  try {
+    await deleteProduct(id);
+    const imageRef = ref(storage, imageUrl);
+    await deleteObject(imageRef);
+    pageSnapshots = [null];
+    currentPage = 1;
+    fetchPage(1);
+  } catch (err) {
+    console.error("Error al eliminar:", err);
+  }
+};
 
-onSnapshot(query(collection(db, 'productos'), orderBy('fecha', 'desc')), snap => {
-  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  renderCatalogTable(data);
+const categoryDropdown = document.getElementById('categoryDropdown');
+const dropdownTrigger = document.querySelector('.dropdown-trigger');
+
+dropdownTrigger?.addEventListener('click', () => {
+  categoryDropdown.classList.toggle('active');
 });
 
-onSnapshot(query(collection(db, 'categorias'), orderBy('fecha', 'desc')), snap => {
-  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  renderTable('categoriesTableBody', data, 'categorias');
+document.addEventListener('click', (e) => {
+  if (categoryDropdown && !categoryDropdown.contains(e.target)) {
+    categoryDropdown.classList.remove('active');
+  }
+});
 
-  const menu = document.getElementById('dropdownMenuCategories');
-  if (!menu) return;
+function updateExclusiveLogic() {
+  const categoryVal = document.getElementById('itemCategory').value;
+  const selectedOccasion = document.querySelector('input[name="occasion"]:checked');
+  const occasionsContainer = document.querySelector('.occasions-sect');
+  occasionsContainer.classList.toggle('disabled-group', categoryVal !== '');
+  categoryDropdown.classList.toggle('disabled-group', !!selectedOccasion);
+}
 
-  menu.innerHTML =
-    `<li class="dropdown-item" data-value="">Ninguna categoría</li>` +
-    data.filter(d => d.activo).map(d =>
-      `<li class="dropdown-item" data-value="${d.id}">${d.nombre}</li>`
-    ).join('');
+const editModal = document.getElementById('editModal');
+const modalTitle = document.getElementById('modalTitle');
+const modalFields = document.getElementById('modalFormFields');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const modalForm = document.getElementById('modalEditForm');
+let currentEditFn = null;
 
-  document.querySelectorAll('.dropdown-item').forEach(item => {
-    item.onclick = () => {
-      document.getElementById('itemCategory').value             = item.getAttribute('data-value');
-      document.getElementById('dropdownSelectedText').innerText = item.innerText;
-      categoryDropdown.classList.remove('active');
-      updateExclusiveLogic();
+function openModal(title, fields, onSave) {
+  modalTitle.textContent = title;
+  modalFields.innerHTML = fields;
+  currentEditFn = onSave;
+  editModal.classList.add('active');
+}
+
+function closeModal() {
+  editModal.classList.remove('active');
+  currentEditFn = null;
+  modalFields.innerHTML = '';
+}
+
+closeModalBtn?.addEventListener('click', closeModal);
+editModal?.addEventListener('click', e => { if (e.target === editModal) closeModal(); });
+
+modalForm?.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!currentEditFn) return;
+  const btn = modalForm.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  await currentEditFn();
+  closeModal();
+  btn.disabled = false;
+});
+
+function inputField(id, value, placeholder) {
+  return `<div class="input-group" style="margin-bottom:0">
+    <input type="text" id="${id}" value="${value}" placeholder="${placeholder}" required>
+  </div>`;
+}
+
+itemImg.addEventListener('change', function() {
+  const file = this.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      imagePreview.src = e.target.result;
+      imagePreviewContainer.classList.add('active');
+      document.getElementById('file-name-preview').innerText = file.name;
     };
-  });
+    reader.readAsDataURL(file);
+  }
 });
 
-onSnapshot(query(collection(db, 'ocasiones'), orderBy('fecha', 'desc')), snap => {
-  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  renderTable('occasionsTableBody', data, 'ocasiones');
-
-  const grid = document.getElementById('checkboxGridOccasions');
-  if (!grid) return;
-
-  grid.innerHTML = data.filter(d => d.activo).map(d =>
-    `<label class="checkbox-label">
-      <input type="radio" name="occasion" value="${d.id}">
-      <span class="custom-checkbox"></span>
-      ${d.nombre}
-    </label>`
-  ).join('');
-
-  document.querySelectorAll('input[name="occasion"]').forEach(cb => {
-    cb.addEventListener('click', function () {
-      if (this.dataset.waschecked === 'true') {
-        this.checked = false;
-        this.dataset.waschecked = 'false';
-      } else {
-        document.querySelectorAll('input[name="occasion"]').forEach(i => i.dataset.waschecked = 'false');
-        this.dataset.waschecked = 'true';
-      }
-      updateExclusiveLogic();
-    });
-  });
-});
-
-const itemImg     = document.getElementById('itemImg');
-const filePreview = document.getElementById('file-name-preview');
-const imgPreview  = document.getElementById('imagePreview');
-const previewBox  = document.getElementById('imagePreviewContainer');
-const btnRemove   = document.getElementById('btnRemoveImage');
-
-itemImg?.addEventListener('change', () => {
-  const file = itemImg.files[0];
-  if (!file) return;
-  filePreview.textContent = file.name;
-  const reader = new FileReader();
-  reader.onload = e => {
-    imgPreview.src = e.target.result;
-    previewBox.classList.add('active');
-  };
-  reader.readAsDataURL(file);
-});
-
-btnRemove?.addEventListener('click', () => {
-  itemImg.value           = '';
-  imgPreview.src          = '';
-  filePreview.textContent = 'Ningún archivo seleccionado';
-  previewBox.classList.remove('active');
+document.getElementById('btnRemoveImage')?.addEventListener('click', () => {
+  itemImg.value = '';
+  imagePreview.src = '';
+  imagePreviewContainer.classList.remove('active');
+  document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
 });
 
 document.getElementById('uploadForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  const btn    = document.getElementById('submitBtn');
+  
+  const validationMsg = document.getElementById('validationMessage');
+  const categoryVal = document.getElementById('itemCategory').value;
+  const selectedOccasion = document.querySelector('input[name="occasion"]:checked');
+  
+  if (!categoryVal && !selectedOccasion) {
+    validationMsg.style.display = 'block';
+    setTimeout(() => { validationMsg.style.display = 'none'; }, 4000);
+    return;
+  }
+  validationMsg.style.display = 'none';
+
+  const btn = document.getElementById('submitBtn');
   const status = document.getElementById('status');
+  const itemName = document.getElementById('itemName');
+  const itemDesc = document.getElementById('itemDesc');
+  const itemCategory = document.getElementById('itemCategory');
+
   try {
-    btn.disabled     = true;
+    btn.disabled = true;
     status.innerText = 'Procesando...';
-    const jpgBlob = await processToJpg(itemImg.files[0]);
-    const refImg  = ref(storage, `catalog/${Date.now()}.jpg`);
-    const url     = await getDownloadURL((await uploadBytes(refImg, jpgBlob)).ref);
-
+    const webpBlob = await processToWebp(itemImg.files[0]);
+    const refImg = ref(storage, `catalog/${Date.now()}.webp`);
+    const uploadResult = await uploadBytes(refImg, webpBlob);
+    const url = await getDownloadURL(uploadResult.ref);
     await addProduct({
-      nombre:      document.getElementById('itemName').value,
-      descripcion: document.getElementById('itemDesc').value,
-      imageUrl:    url,
-      categoria:   document.getElementById('itemCategory').value,
-      ocasiones:   document.querySelector('input[name="occasion"]:checked')?.value || null,
+      nombre: itemName.value,
+      descripcion: itemDesc.value,
+      imageUrl: url,
+      categoria: itemCategory.value,
+      ocasiones: selectedOccasion?.value || null,
+      fecha: new Date().toISOString()
     });
-
-    status.innerText        = '¡Publicado!';
+    
+    status.innerText = '';
+    itemName.value = '';
+    itemDesc.value = '';
+    itemCategory.value = '';
+    
+    if (selectedOccasion) selectedOccasion.checked = false;
+    
     e.target.reset();
-    imgPreview.src          = '';
-    previewBox.classList.remove('active');
-    filePreview.textContent = 'Ningún archivo seleccionado';
+    document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
+    imagePreviewContainer.classList.remove('active');
     document.getElementById('dropdownSelectedText').innerText = 'Ninguna categoría';
+    
+    pageSnapshots = [null];
+    currentPage = 1;
     updateExclusiveLogic();
+    fetchPage(1);
   } catch (err) {
     status.innerText = 'Error: ' + err.message;
   } finally {
@@ -299,12 +441,16 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
 document.getElementById('categoryForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   await addCategory(document.getElementById('newCategoryName').value.trim());
+  clearCache('cats');
+  loadCategories(true);
   e.target.reset();
 });
 
 document.getElementById('occasionForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   await addOccasion(document.getElementById('newOccasionName').value.trim());
+  clearCache('occs');
+  loadOccasions(true);
   e.target.reset();
 });
 
@@ -312,3 +458,7 @@ document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   await logout();
   window.location.href = 'index.html';
 });
+
+loadCategories();
+loadOccasions();
+fetchPage(1);

@@ -89,8 +89,8 @@
               <button type="button" class="btn-remove-image" id="btnRemoveImage"><i class="fa-solid fa-xmark"></i></button>
               <img src="" alt="Vista previa" id="imagePreview">
             </div>
-            
-            <div id="validationMessage" class="validation-error" style="color: #c0392b; margin-bottom: 1rem; display: none;">
+
+            <div id="validationMessage" class="validation-error" style="display:none;">
               <i class="fa-solid fa-circle-exclamation"></i> Por favor, selecciona una categoría o una fecha especial.
             </div>
 
@@ -103,13 +103,19 @@
           <h3>Arreglos Publicados</h3>
 
           <div class="filter-bar">
-            <div class="input-group">
+            <div class="input-group search-group">
               <i class="fa-solid fa-magnifying-glass input-icon"></i>
               <input type="text" id="searchInput" placeholder="Buscar por nombre..." oninput="applyFilters()">
             </div>
-            <select id="filterCategory" onchange="applyFilters()">
-              <option value="">Todas las categorías/ocasiones</option>
-            </select>
+            <div class="custom-dropdown filter-dropdown" id="filterDropdown">
+              <div class="dropdown-trigger">
+                <i class="fa-solid fa-filter dropdown-icon-left"></i>
+                <span id="filterSelectedText">Todas</span>
+                <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
+              </div>
+              <ul class="dropdown-menu" id="dropdownMenuFilter"></ul>
+              <input type="hidden" id="filterCategory" value="">
+            </div>
           </div>
 
           <div class="table-responsive">
@@ -194,7 +200,7 @@
       <h3 id="modalTitle">Editar Elemento</h3>
       <form id="modalEditForm">
         <div id="modalFormFields"></div>
-        <button type="submit" class="btn-primary">Confirmar</button>
+        <button type="submit" id="modalSubmitBtn" class="btn-primary">Confirmar</button>
       </form>
     </div>
   </div>

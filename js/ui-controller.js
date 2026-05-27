@@ -1,6 +1,6 @@
 import { db, storage } from './config.js';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
-import { collection, query, orderBy, limit, startAfter, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { collection, query, orderBy, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { processToWebp } from './converter.js';
 import { logout } from './services/authService.js';
 import { protectRoute } from './services/authGuard.js';
@@ -21,6 +21,8 @@ let inactivityTimeout;
 const itemImg = document.getElementById('itemImg');
 const imagePreview = document.getElementById('imagePreview');
 const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+const categoryDropdown = document.getElementById('categoryDropdown');
+const filterDropdown = document.getElementById('filterDropdown');
 
 function resetInactivityTimer() {
   clearTimeout(inactivityTimeout);
@@ -39,9 +41,7 @@ function getCached(key) {
   try {
     const data = sessionStorage.getItem(key);
     const ts = sessionStorage.getItem(key + '_ts');
-    if (data && ts && Date.now() - Number(ts) < CACHE_TTL) {
-      return JSON.parse(data);
-    }
+    if (data && ts && Date.now() - Number(ts) < CACHE_TTL) return JSON.parse(data);
   } catch (_) {}
   return null;
 }
@@ -107,7 +107,7 @@ function buildCategoryDropdown(data) {
   if (!menu) return;
   menu.innerHTML = `<li class="dropdown-item" data-value="">Ninguna categoría</li>` +
     data.filter(d => d.activo).map(d => `<li class="dropdown-item" data-value="${d.id}">${d.nombre}</li>`).join('');
-  document.querySelectorAll('.dropdown-item').forEach(item => {
+  document.querySelectorAll('#dropdownMenuCategories .dropdown-item').forEach(item => {
     item.onclick = () => {
       document.getElementById('itemCategory').value = item.getAttribute('data-value');
       document.getElementById('dropdownSelectedText').innerText = item.innerText;
@@ -127,16 +127,43 @@ function buildOccasionCheckboxes(data) {
 }
 
 async function updateFilterSelects() {
-  const select = document.getElementById('filterCategory');
-  if (!select) return;
-  const [cats, occs] = await Promise.all([
-    getCached('cats') ? Promise.resolve(getCached('cats')) : getDocs(collection(db, 'categorias')).then(s => s.docs.map(d => ({ id: d.id, ...d.data() }))),
-    getCached('occs') ? Promise.resolve(getCached('occs')) : getDocs(collection(db, 'ocasiones')).then(s => s.docs.map(d => ({ id: d.id, ...d.data() })))
-  ]);
-  let options = '<option value="">Todas las categorías/ocasiones</option>';
-  cats.forEach(d => options += `<option value="${d.id}">${d.nombre}</option>`);
-  occs.forEach(d => options += `<option value="${d.id}">${d.nombre}</option>`);
-  select.innerHTML = options;
+  const menu = document.getElementById('dropdownMenuFilter');
+  if (!menu) return;
+  const cats = getCached('cats') || await getDocs(collection(db, 'categorias')).then(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+  const occs = getCached('occs') || await getDocs(collection(db, 'ocasiones')).then(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+
+  let html = `<li class="dropdown-item filter-item" data-value="" data-label="Todas">
+    <span class="filter-badge filter-all">Todas</span>
+  </li>`;
+
+  if (cats.length > 0) {
+    html += `<li class="dropdown-divider-label">Categorías</li>`;
+    cats.forEach(d => {
+      html += `<li class="dropdown-item filter-item" data-value="${d.id}" data-label="${d.nombre}">
+        <span class="filter-badge filter-cat">${d.nombre}</span>
+      </li>`;
+    });
+  }
+
+  if (occs.length > 0) {
+    html += `<li class="dropdown-divider-label">Fechas Especiales</li>`;
+    occs.forEach(d => {
+      html += `<li class="dropdown-item filter-item" data-value="${d.id}" data-label="${d.nombre}">
+        <span class="filter-badge filter-occ">${d.nombre}</span>
+      </li>`;
+    });
+  }
+
+  menu.innerHTML = html;
+
+  document.querySelectorAll('#dropdownMenuFilter .filter-item').forEach(item => {
+    item.onclick = () => {
+      document.getElementById('filterCategory').value = item.getAttribute('data-value');
+      document.getElementById('filterSelectedText').innerText = item.getAttribute('data-label');
+      filterDropdown.classList.remove('active');
+      applyFilters();
+    };
+  });
 }
 
 function renderCatalogTable(data) {
@@ -195,6 +222,7 @@ function renderPagination(current, total, hasMore) {
   const wrap = document.getElementById('paginationBar');
   if (!wrap) return;
   wrap.innerHTML = '';
+
   const makeBtn = (html, page, extraClass = '') => {
     const b = document.createElement('button');
     b.className = 'btn-page' + (extraClass ? ' ' + extraClass : '');
@@ -202,9 +230,18 @@ function renderPagination(current, total, hasMore) {
     if (page !== null) b.addEventListener('click', () => fetchPage(page));
     return b;
   };
+
+  const makeDots = () => {
+    const s = document.createElement('span');
+    s.className = 'page-dots';
+    s.textContent = '···';
+    return s;
+  };
+
   const prevBtn = makeBtn('<i class="fa-solid fa-chevron-left"></i>', current - 1);
   if (current === 1) prevBtn.disabled = true;
   wrap.appendChild(prevBtn);
+
   let pages = [];
   if (total <= 7) {
     for (let i = 1; i <= total; i++) pages.push(i);
@@ -215,10 +252,12 @@ function renderPagination(current, total, hasMore) {
     if (current < total - 2) pages.push('...');
     pages.push(total);
   }
+
   pages.forEach(p => {
-    if (p === '...') wrap.appendChild(document.createElement('span'));
+    if (p === '...') wrap.appendChild(makeDots());
     else wrap.appendChild(makeBtn(p, p, p === current ? 'active' : ''));
   });
+
   const nextBtn = makeBtn('<i class="fa-solid fa-chevron-right"></i>', current + 1);
   if (!hasMore && current === total) nextBtn.disabled = true;
   wrap.appendChild(nextBtn);
@@ -263,7 +302,8 @@ window.deleteItem = async (col, id) => {
 };
 
 window.editItem = (col, id, nombre) => {
-  openModal(col === 'categorias' ? 'Editar Categoría' : 'Editar Fecha Especial',
+  openModal(
+    col === 'categorias' ? 'Editar Categoría' : 'Editar Fecha Especial',
     inputField('modalNombre', nombre, 'Nombre'),
     async () => {
       const val = document.getElementById('modalNombre').value.trim();
@@ -301,24 +341,29 @@ window.removeProduct = async (id, imageUrl) => {
       currentPage = 1;
       fetchPage(1);
     } catch (err) {
-      console.error("Error al eliminar:", err);
+      console.error('Error al eliminar:', err);
     }
   });
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
 
-const categoryDropdown = document.getElementById('categoryDropdown');
-const dropdownTrigger = document.querySelector('.dropdown-trigger');
-dropdownTrigger?.addEventListener('click', () => categoryDropdown.classList.toggle('active'));
+document.querySelector('#categoryDropdown .dropdown-trigger')?.addEventListener('click', () => {
+  categoryDropdown.classList.toggle('active');
+});
+
+document.querySelector('#filterDropdown .dropdown-trigger')?.addEventListener('click', () => {
+  filterDropdown.classList.toggle('active');
+});
+
 document.addEventListener('click', (e) => {
   if (categoryDropdown && !categoryDropdown.contains(e.target)) categoryDropdown.classList.remove('active');
+  if (filterDropdown && !filterDropdown.contains(e.target)) filterDropdown.classList.remove('active');
 });
 
 function updateExclusiveLogic() {
   const categoryVal = document.getElementById('itemCategory').value;
   const selectedOccasion = document.querySelector('input[name="occasion"]:checked');
-  const occasionsContainer = document.querySelector('.occasions-sect');
-  occasionsContainer.classList.toggle('disabled-group', categoryVal !== '');
+  document.querySelector('.occasions-sect').classList.toggle('disabled-group', categoryVal !== '');
   categoryDropdown.classList.toggle('disabled-group', !!selectedOccasion);
 }
 
@@ -331,7 +376,7 @@ let currentEditFn = null;
 
 function openModal(title, fields, onSave) {
   const btn = document.getElementById('modalSubmitBtn');
-  if(btn) btn.className = 'btn-primary';
+  if (btn) btn.className = 'btn-primary';
   modalTitle.textContent = title;
   modalFields.innerHTML = fields;
   currentEditFn = onSave;
@@ -361,11 +406,11 @@ function inputField(id, value, placeholder) {
   return `<div class="input-group" style="margin-bottom:0"><input type="text" id="${id}" value="${value}" placeholder="${placeholder}" required></div>`;
 }
 
-itemImg.addEventListener('change', function() {
+itemImg.addEventListener('change', function () {
   const file = this.files[0];
   if (file) {
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
       imagePreview.src = e.target.result;
       imagePreviewContainer.classList.add('active');
       document.getElementById('file-name-preview').innerText = file.name;
@@ -413,10 +458,6 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
       fecha: new Date().toISOString()
     });
     status.innerText = '';
-    itemName.value = '';
-    itemDesc.value = '';
-    itemCategory.value = '';
-    if (selectedOccasion) selectedOccasion.checked = false;
     e.target.reset();
     document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
     imagePreviewContainer.classList.remove('active');

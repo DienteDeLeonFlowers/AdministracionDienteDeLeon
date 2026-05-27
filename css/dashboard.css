@@ -297,6 +297,8 @@ textarea:focus {
   align-items: center;
   justify-content: space-between;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .custom-dropdown.active .dropdown-trigger {
@@ -312,12 +314,15 @@ textarea:focus {
   opacity: 0.4;
   font-size: 0.9rem;
   z-index: 3;
+  pointer-events: none;
 }
 
 .dropdown-arrow {
   font-size: 0.85rem;
   opacity: 0.6;
   transition: transform 0.3s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 .custom-dropdown.active .dropdown-arrow {
@@ -339,6 +344,8 @@ textarea:focus {
   gap: 2px;
   box-shadow: 0 10px 25px rgba(20, 36, 23, 0.08);
   z-index: 99;
+  max-height: 260px;
+  overflow-y: auto;
 }
 
 .custom-dropdown.active .dropdown-menu {
@@ -354,6 +361,52 @@ textarea:focus {
 
 .dropdown-menu li:hover {
   background: rgba(0, 204, 82, 0.06);
+}
+
+.dropdown-divider-label {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: rgba(20, 36, 23, 0.35) !important;
+  padding: 10px 16px 4px !important;
+  cursor: default !important;
+  pointer-events: none;
+}
+
+.dropdown-divider-label:hover {
+  background: transparent !important;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+}
+
+.filter-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.filter-all {
+  background: rgba(20, 36, 23, 0.06);
+  color: var(--green-corporate);
+}
+
+.filter-cat {
+  background: rgba(0, 204, 82, 0.1);
+  color: #00a84d;
+  border: 1px solid rgba(0, 204, 82, 0.2);
+}
+
+.filter-occ {
+  background: rgba(197, 155, 39, 0.1);
+  color: var(--sand-gold);
+  border: 1px solid rgba(197, 155, 39, 0.2);
 }
 
 .custom-dropdown.disabled {
@@ -554,12 +607,46 @@ input[type="radio"] {
   cursor: pointer;
 }
 
-/* CORRECCIÓN MÓVIL Y NAVEGACIÓN */
-.table-responsive { 
-  width: 100%; 
-  overflow-x: auto; 
-  overscroll-behavior-x: contain; 
-  -webkit-overflow-scrolling: touch; 
+.validation-error {
+  font-size: 0.85rem;
+  color: #c0392b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  padding: 8px 12px;
+  background: rgba(192, 57, 43, 0.06);
+  border-radius: 8px;
+  border: 1px solid rgba(192, 57, 43, 0.15);
+}
+
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+
+.search-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-dropdown {
+  width: 200px;
+  flex-shrink: 0;
+  z-index: 20;
+}
+
+.filter-dropdown .dropdown-menu {
+  min-width: 200px;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
@@ -569,7 +656,8 @@ table {
   font-size: 0.95rem;
 }
 
-th, td {
+th,
+td {
   padding: 14px 16px;
   border-bottom: 1px solid rgba(20, 36, 23, 0.06);
   white-space: nowrap;
@@ -618,7 +706,6 @@ th {
   display: flex;
   flex-direction: row !important;
   gap: 8px;
-  justify-content: center;
   align-items: center;
 }
 
@@ -818,30 +905,6 @@ th {
   font-weight: 600;
 }
 
-.filter-bar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-  align-items: center;
-}
-
-#filterCategory {
-  padding: 13px 16px;
-  border-radius: 8px;
-  border: 1px solid rgba(20, 36, 23, 0.12);
-  background: var(--input-bg);
-  color: var(--green-corporate);
-  font-weight: 500;
-  outline: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-#filterCategory:focus {
-  border-color: var(--sand-gold);
-  background: #ffffff;
-}
-
 .disabled-group {
   opacity: 0.4;
   pointer-events: none;
@@ -994,6 +1057,8 @@ th {
   .content-panel {
     margin-left: 0;
     padding: 1.5rem 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
     height: calc(100vh - 120px);
     height: calc(100dvh - 120px);
     touch-action: pan-y;
@@ -1007,11 +1072,26 @@ th {
     touch-action: pan-y;
   }
 
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .search-group {
+    width: 100%;
+  }
+
+  .filter-dropdown {
+    width: 100%;
+  }
+
   table {
     font-size: 0.8rem;
   }
 
-  th, td {
+  th,
+  td {
     padding: 10px 8px;
   }
 
@@ -1021,7 +1101,6 @@ th {
   }
 
   .actions-cell {
-    flex-direction: row;
     gap: 4px;
   }
 

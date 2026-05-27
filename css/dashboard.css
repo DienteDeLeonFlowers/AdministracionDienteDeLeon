@@ -646,9 +646,11 @@ input[type="radio"] {
 .table-responsive {
   width: 100%;
   overflow-x: auto;
-  overscroll-behavior-x: contain;
+  overflow-y: hidden;
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: auto;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
+  touch-action: pan-x;
 }
 
 table {
@@ -1147,5 +1149,15 @@ th {
   .input-icon,
   .dropdown-icon-left {
     left: 12px;
+  }
+}
+
+@media (max-width: 860px) {
+  .management-card {
+    touch-action: pan-y;
+  }
+
+  .table-responsive {
+    touch-action: pan-x;
   }
 }

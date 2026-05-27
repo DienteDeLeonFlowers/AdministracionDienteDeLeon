@@ -23,7 +23,6 @@
   100% { box-shadow: 0 0 0px rgba(0, 204, 82, 0); border-color: transparent; }
 }
 
-
 body {
   overscroll-behavior-x: none;
 }
@@ -647,7 +646,6 @@ input[type="radio"] {
   min-width: 200px;
 }
 
-
 .table-responsive {
   width: 100%;
   overflow-x: auto;
@@ -663,22 +661,6 @@ table {
   text-align: left;
   font-size: 0.95rem;
   table-layout: auto;
-}
-
-.table-scroll {
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
-  touch-action: pan-x;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-  font-size: 0.95rem;
 }
 
 th,
@@ -943,9 +925,6 @@ th {
     height: 100dvh;
     overflow: hidden;
   }
-
-  
-
   .sidebar-panel {
     width: 100%;
     height: auto;
@@ -960,7 +939,6 @@ th {
     -webkit-backdrop-filter: blur(12px);
     z-index: 100;
   }
-
   .sidebar-brand-box {
     flex-direction: row;
     justify-content: flex-start;
@@ -968,7 +946,6 @@ th {
     gap: 12px;
     width: 100%;
   }
-
   .sidebar-logo-box {
     display: flex;
     width: 44px;
@@ -976,12 +953,10 @@ th {
     margin-bottom: 0;
     box-shadow: 0 4px 10px rgba(0, 204, 82, 0.08);
   }
-
   .sidebar-info {
     text-align: left;
     margin-bottom: 0;
   }
-
   .sidebar-menu {
     flex-direction: row;
     width: 100%;
@@ -995,7 +970,6 @@ th {
     --indicator-index: 0;
     touch-action: none;
   }
-
   .nav-indicator {
     display: block;
     position: absolute;
@@ -1022,7 +996,6 @@ th {
       inset 0 1px 0 rgba(255, 255, 255, 1),
       inset 0 -1px 0 rgba(255, 255, 255, 0.3);
   }
-
   .nav-indicator::after {
     content: '';
     position: absolute;
@@ -1034,7 +1007,6 @@ th {
     pointer-events: none;
     z-index: -1;
   }
-
   .menu-btn {
     padding: 10px;
     flex: 1;
@@ -1046,25 +1018,21 @@ th {
     z-index: 2;
     position: relative;
   }
-
   .menu-btn span {
     display: none;
   }
-
   .menu-btn i {
     font-size: 1.25rem !important;
     color: var(--green-corporate);
     opacity: 0.35;
     transition: color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
   }
-
   .menu-btn.active i {
     color: var(--green-neon) !important;
     opacity: 1 !important;
     transform: scale(1.08);
     filter: drop-shadow(0 0 4px rgba(0, 204, 82, 0.3));
   }
-
   .btn-logout {
     position: absolute;
     top: 12px;
@@ -1076,11 +1044,9 @@ th {
     border-color: rgba(255, 74, 74, 0.15);
     background: rgba(255, 255, 255, 0.6);
   }
-
   .btn-logout span {
     display: none;
   }
-
   .content-panel {
     margin-left: 0;
     padding: 1.5rem 1rem;
@@ -1090,7 +1056,6 @@ th {
     height: calc(100dvh - 120px);
     touch-action: pan-y;
   }
-
   .crud-section {
     display: none;
     flex-direction: column;
@@ -1098,55 +1063,44 @@ th {
     width: 100%;
     touch-action: pan-y;
   }
-
   .filter-bar {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
   }
-
   .search-group {
     width: 100%;
   }
-
   .filter-dropdown {
     width: 100%;
   }
-
   table {
     font-size: 0.8rem;
   }
-
   th,
   td {
     padding: 10px 8px;
   }
-
   .td-img {
     width: 36px;
     height: 36px;
   }
-
   .actions-cell {
     gap: 4px;
   }
-
   .btn-action {
     padding: 6px;
     font-size: 0.75rem;
   }
-
   .pagination-bar {
     gap: 4px;
   }
-
   .btn-page {
     min-width: 32px;
     height: 32px;
     font-size: 0.8rem;
     border-radius: 8px;
   }
-
   .page-dots {
     min-width: 28px;
   }
@@ -1156,7 +1110,6 @@ th {
   form {
     gap: 0.8rem;
   }
-
   input,
   textarea,
   .dropdown-trigger,
@@ -1164,23 +1117,11 @@ th {
     padding: 11px 14px 11px 38px;
     font-size: 16px !important;
   }
-
   .dropdown-menu li {
     padding-left: 14px;
   }
-
   .input-icon,
   .dropdown-icon-left {
     left: 12px;
-  }
-}
-
-@media (max-width: 860px) {
-  .management-card {
-    touch-action: auto;
-  }
-
-  .table-responsive {
-    touch-action: auto;
   }
 }

@@ -8,25 +8,19 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <style>
-    html, body {
-      overscroll-behavior: none;
-    }
+    html, body { overscroll-behavior: none; }
   </style>
 </head>
 <body>
   <div class="bg-particles">
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
-    <div class="particle"></div>
+    <div class="particle"></div><div class="particle"></div>
+    <div class="particle"></div><div class="particle"></div>
   </div>
 
   <div class="dashboard-wrapper">
     <aside class="sidebar-panel">
       <div class="sidebar-brand-box">
-        <div class="sidebar-logo-box">
-          <img src="img/logo.png" alt="Logo">
-        </div>
+        <div class="sidebar-logo-box"><img src="img/logo.png" alt="Logo"></div>
         <div class="sidebar-info">
           <span>Panel Administrativo</span>
           <p>Florería Diente de León</p>
@@ -35,8 +29,11 @@
 
       <nav class="sidebar-menu">
         <div class="nav-indicator"></div>
-        <button class="menu-btn active" data-target="panel-catalog">
-          <i class="fa-solid fa-images"></i> <span>Catálogo / Ramos</span>
+        <button class="menu-btn active" data-target="panel-upload">
+          <i class="fa-solid fa-cloud-arrow-up"></i> <span>Subir Arreglo</span>
+        </button>
+        <button class="menu-btn" data-target="panel-view-catalog">
+          <i class="fa-solid fa-images"></i> <span>Arreglos publicados</span>
         </button>
         <button class="menu-btn" data-target="panel-categories">
           <i class="fa-solid fa-layer-group"></i> <span>Categorías Fijas</span>
@@ -52,8 +49,7 @@
     </aside>
 
     <main class="content-panel">
-
-      <section id="panel-catalog" class="crud-section active">
+      <section id="panel-upload" class="crud-section active">
         <div class="dashboard-card">
           <h2>Subir Nuevo Arreglo</h2>
           <form id="uploadForm">
@@ -65,7 +61,6 @@
               <i class="fa-solid fa-align-left input-icon textarea-icon"></i>
               <textarea id="itemDesc" placeholder="Descripción / Receta floral" required></textarea>
             </div>
-
             <div class="custom-dropdown" id="categoryDropdown">
               <div class="dropdown-trigger">
                 <i class="fa-solid fa-layer-group dropdown-icon-left"></i>
@@ -75,12 +70,10 @@
               <ul class="dropdown-menu" id="dropdownMenuCategories"></ul>
               <input type="hidden" id="itemCategory" value="">
             </div>
-
             <div class="occasions-sect">
               <label class="sect-title"><i class="fa-solid fa-calendar-check"></i> Fechas Especiales / Ocasiones</label>
               <div class="checkbox-grid" id="checkboxGridOccasions"></div>
             </div>
-
             <div class="file-input-wrapper">
               <label for="itemImg" class="file-label">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
@@ -89,24 +82,22 @@
               <input type="file" id="itemImg" accept="image/*" required>
               <div id="file-name-preview" class="file-preview-text">Ningún archivo seleccionado</div>
             </div>
-
             <div class="image-preview-container" id="imagePreviewContainer">
               <button type="button" class="btn-remove-image" id="btnRemoveImage"><i class="fa-solid fa-xmark"></i></button>
               <img src="" alt="Vista previa" id="imagePreview">
             </div>
-
             <div id="validationMessage" class="validation-error" style="display:none;">
               <i class="fa-solid fa-circle-exclamation"></i> Por favor, selecciona una categoría o una fecha especial.
             </div>
-
             <button type="submit" id="submitBtn" class="btn-primary">Publicar en Catálogo</button>
             <div id="status"></div>
           </form>
         </div>
+      </section>
 
+      <section id="panel-view-catalog" class="crud-section">
         <div class="management-card">
           <h3>Arreglos Publicados</h3>
-
           <div class="filter-bar">
             <div class="input-group search-group">
               <i class="fa-solid fa-magnifying-glass input-icon"></i>
@@ -122,17 +113,10 @@
               <input type="hidden" id="filterCategory" value="">
             </div>
           </div>
-
           <div class="table-responsive">
             <table>
               <thead>
-                <tr>
-                  <th>Imagen</th>
-                  <th>Nombre</th>
-                  <th>Descripción</th>
-                  <th>Clasificación</th>
-                  <th>Acciones</th>
-                </tr>
+                <tr><th>Imagen</th><th>Nombre</th><th>Descripción</th><th>Clasificación</th><th>Acciones</th></tr>
               </thead>
               <tbody id="catalogTableBody"></tbody>
             </table>
@@ -157,11 +141,7 @@
           <div class="table-responsive">
             <table>
               <thead>
-                <tr>
-                  <th>Nombre de la Categoría</th>
-                  <th>Estatus</th>
-                  <th>Acciones</th>
-                </tr>
+                <tr><th>Nombre de la Categoría</th><th>Estatus</th><th>Acciones</th></tr>
               </thead>
               <tbody id="categoriesTableBody"></tbody>
             </table>
@@ -185,11 +165,7 @@
           <div class="table-responsive">
             <table>
               <thead>
-                <tr>
-                  <th>Nombre de la Ocasión</th>
-                  <th>Estatus</th>
-                  <th>Acciones</th>
-                </tr>
+                <tr><th>Nombre de la Ocasión</th><th>Estatus</th><th>Acciones</th></tr>
               </thead>
               <tbody id="occasionsTableBody"></tbody>
             </table>

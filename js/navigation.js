@@ -2,7 +2,8 @@ const menuButtons = document.querySelectorAll('.menu-btn');
 const crudSections = document.querySelectorAll('.crud-section');
 const navIndicator = document.querySelector('.nav-indicator');
 const sidebarMenu = document.querySelector('.sidebar-menu');
-const panelsOrder = ['panel-catalog', 'panel-categories', 'panel-occasions'];
+
+const panelsOrder = ['panel-upload', 'panel-view-catalog', 'panel-categories', 'panel-occasions'];
 
 function getActivePanelIndex() {
   const active = Array.from(crudSections).find(s => s.classList.contains('active'));
@@ -11,9 +12,7 @@ function getActivePanelIndex() {
 
 function setIndicator(index, animate = true) {
   if (!sidebarMenu || !navIndicator) return;
-  navIndicator.style.transition = animate
-    ? 'transform 0.42s cubic-bezier(0.25, 1, 0.5, 1)'
-    : 'none';
+  navIndicator.style.transition = animate ? 'transform 0.42s cubic-bezier(0.25, 1, 0.5, 1)' : 'none';
   sidebarMenu.style.setProperty('--indicator-index', index);
 }
 
@@ -52,8 +51,6 @@ if (sidebarMenu && navIndicator) {
   let liveIndex = 0;
   let pointerId = null;
 
-
-
   sidebarMenu.addEventListener('pointerdown', e => {
     if (window.innerWidth > 860) return;
     dragging = false;
@@ -65,28 +62,17 @@ if (sidebarMenu && navIndicator) {
   });
 
   sidebarMenu.addEventListener('pointermove', e => {
-    if (window.innerWidth > 860) return;
-    if (e.pointerId !== pointerId) return;
-
+    if (window.innerWidth > 860 || e.pointerId !== pointerId) return;
     const dx = e.clientX - startX;
     if (!dragging && Math.abs(dx) < 6) return;
-
-    if (!dragging) {
-      dragging = true;
-      navIndicator.style.transition = 'none';
-    }
-
+    if (!dragging) { dragging = true; navIndicator.style.transition = 'none'; }
     const menuW = sidebarMenu.offsetWidth - 8;
-    const stepPx = menuW / 3;
+    const stepPx = menuW / panelsOrder.length;
     const raw = startIndex + dx / stepPx;
     const clamped = Math.min(Math.max(raw, 0), panelsOrder.length - 1);
-
     sidebarMenu.style.setProperty('--indicator-index', clamped);
-
     const snapped = Math.round(clamped);
-    if (snapped !== Math.round(liveIndex)) {
-      setActiveBtn(snapped);
-    }
+    if (snapped !== Math.round(liveIndex)) setActiveBtn(snapped);
     liveIndex = clamped;
   });
 
@@ -97,7 +83,6 @@ if (sidebarMenu && navIndicator) {
     const finalIdx = Math.min(Math.max(Math.round(liveIndex), 0), panelsOrder.length - 1);
     switchPanel(panelsOrder[finalIdx], true);
   }
-
   sidebarMenu.addEventListener('pointerup', endDrag);
   sidebarMenu.addEventListener('pointercancel', endDrag);
 }

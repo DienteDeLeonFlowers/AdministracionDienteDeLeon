@@ -642,11 +642,13 @@ input[type="radio"] {
   min-width: 200px;
 }
 
+
 .table-responsive {
   width: 100%;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
 table {

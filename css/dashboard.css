@@ -652,6 +652,7 @@ input[type="radio"] {
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: none;
+  touch-action: pan-x;
 }
 
 table {
@@ -666,21 +667,40 @@ td {
   padding: 14px 16px;
   border-bottom: 1px solid rgba(20, 36, 23, 0.06);
   vertical-align: middle;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 #panel-catalog table {
-  min-width: 700px;
+  min-width: 750px;
+  table-layout: fixed;
 }
 
-#panel-catalog th,
-#panel-catalog td {
-  white-space: nowrap;
+#panel-catalog th:nth-child(1),
+#panel-catalog td:nth-child(1) {
+  width: 80px;
 }
 
+#panel-catalog th:nth-child(2),
+#panel-catalog td:nth-child(2) {
+  width: 20%;
+}
+
+#panel-catalog th:nth-child(3),
 #panel-catalog td:nth-child(3) {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  width: 40%;
+}
+
+#panel-catalog th:nth-child(4),
+#panel-catalog td:nth-child(4) {
+  width: 20%;
+}
+
+#panel-catalog th:nth-child(5),
+#panel-catalog td:nth-child(5) {
+  width: 120px;
   white-space: nowrap;
 }
 
@@ -688,18 +708,12 @@ td {
 #panel-occasions table {
   width: 100%;
   min-width: 100%;
+  table-layout: auto;
 }
 
-#panel-categories th,
-#panel-categories td,
-#panel-occasions th,
-#panel-occasions td {
-  white-space: normal;
-}
-
-#panel-categories th:not(:first-child),
+#panel-categories th:not(:first-child), 
 #panel-categories td:not(:first-child),
-#panel-occasions th:not(:first-child),
+#panel-occasions th:not(:first-child), 
 #panel-occasions td:not(:first-child) {
   width: 1%;
   white-space: nowrap;

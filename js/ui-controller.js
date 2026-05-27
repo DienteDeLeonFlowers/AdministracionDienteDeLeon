@@ -254,9 +254,11 @@ window.toggleStatus = async (col, id, stat) => {
 };
 
 window.deleteItem = async (col, id) => {
-  col === 'categorias' ? await deleteCategory(id) : await deleteOccasion(id);
-  clearCache(col === 'categorias' ? 'cats' : 'occs');
-  col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+  openModal('Eliminar', '<p>¿Confirmas que deseas eliminar este elemento?</p>', async () => {
+    col === 'categorias' ? await deleteCategory(id) : await deleteOccasion(id);
+    clearCache(col === 'categorias' ? 'cats' : 'occs');
+    col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+  });
 };
 
 window.editItem = (col, id, nombre) => {
@@ -305,15 +307,9 @@ window.removeProduct = async (id, imageUrl) => {
 
 const categoryDropdown = document.getElementById('categoryDropdown');
 const dropdownTrigger = document.querySelector('.dropdown-trigger');
-
-dropdownTrigger?.addEventListener('click', () => {
-  categoryDropdown.classList.toggle('active');
-});
-
+dropdownTrigger?.addEventListener('click', () => categoryDropdown.classList.toggle('active'));
 document.addEventListener('click', (e) => {
-  if (categoryDropdown && !categoryDropdown.contains(e.target)) {
-    categoryDropdown.classList.remove('active');
-  }
+  if (categoryDropdown && !categoryDropdown.contains(e.target)) categoryDropdown.classList.remove('active');
 });
 
 function updateExclusiveLogic() {
@@ -358,9 +354,7 @@ modalForm?.addEventListener('submit', async e => {
 });
 
 function inputField(id, value, placeholder) {
-  return `<div class="input-group" style="margin-bottom:0">
-    <input type="text" id="${id}" value="${value}" placeholder="${placeholder}" required>
-  </div>`;
+  return `<div class="input-group" style="margin-bottom:0"><input type="text" id="${id}" value="${value}" placeholder="${placeholder}" required></div>`;
 }
 
 itemImg.addEventListener('change', function() {
@@ -394,13 +388,11 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
     return;
   }
   validationMsg.style.display = 'none';
-
   const btn = document.getElementById('submitBtn');
   const status = document.getElementById('status');
   const itemName = document.getElementById('itemName');
   const itemDesc = document.getElementById('itemDesc');
   const itemCategory = document.getElementById('itemCategory');
-
   try {
     btn.disabled = true;
     status.innerText = 'Procesando...';

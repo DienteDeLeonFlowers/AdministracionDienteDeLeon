@@ -494,6 +494,12 @@ document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   window.location.href = 'index.html';
 });
 
+document.querySelectorAll('.table-responsive').forEach(el => {
+  el.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+  el.addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
+  el.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
+});
+
 loadCategories();
 loadOccasions();
 fetchPage(1);

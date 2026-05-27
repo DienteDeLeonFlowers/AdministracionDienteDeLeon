@@ -24,8 +24,7 @@
 }
 
 body {
-  overscroll-behavior: none;
-  touch-action: pan-y;
+  overscroll-behavior-x: none;
 }
 
 body.loading {
@@ -653,15 +652,14 @@ input[type="radio"] {
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: none;
-  touch-action: pan-x;
 }
 
 table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.95rem;
-  table-layout: auto;
 }
 
 th,

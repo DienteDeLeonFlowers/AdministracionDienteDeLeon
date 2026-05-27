@@ -129,8 +129,10 @@ function buildOccasionCheckboxes(data) {
 async function updateFilterSelects() {
   const select = document.getElementById('filterCategory');
   if (!select) return;
-  const cats = getCached('cats') || [];
-  const occs = getCached('occs') || [];
+  const [cats, occs] = await Promise.all([
+    getCached('cats') ? Promise.resolve(getCached('cats')) : getDocs(collection(db, 'categorias')).then(s => s.docs.map(d => ({ id: d.id, ...d.data() }))),
+    getCached('occs') ? Promise.resolve(getCached('occs')) : getDocs(collection(db, 'ocasiones')).then(s => s.docs.map(d => ({ id: d.id, ...d.data() })))
+  ]);
   let options = '<option value="">Todas las categorías/ocasiones</option>';
   cats.forEach(d => options += `<option value="${d.id}">${d.nombre}</option>`);
   occs.forEach(d => options += `<option value="${d.id}">${d.nombre}</option>`);
@@ -287,16 +289,18 @@ window.editProduct = (id, nombre, descripcion) => {
 };
 
 window.removeProduct = async (id, imageUrl) => {
-  try {
-    await deleteProduct(id);
-    const imageRef = ref(storage, imageUrl);
-    await deleteObject(imageRef);
-    pageSnapshots = [null];
-    currentPage = 1;
-    fetchPage(1);
-  } catch (err) {
-    console.error("Error al eliminar:", err);
-  }
+  openModal('Eliminar producto', '<p>¿Confirmas que deseas eliminar este arreglo?</p>', async () => {
+    try {
+      await deleteProduct(id);
+      const imageRef = ref(storage, imageUrl);
+      await deleteObject(imageRef);
+      pageSnapshots = [null];
+      currentPage = 1;
+      fetchPage(1);
+    } catch (err) {
+      console.error("Error al eliminar:", err);
+    }
+  });
 };
 
 const categoryDropdown = document.getElementById('categoryDropdown');
@@ -381,11 +385,9 @@ document.getElementById('btnRemoveImage')?.addEventListener('click', () => {
 
 document.getElementById('uploadForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  
   const validationMsg = document.getElementById('validationMessage');
   const categoryVal = document.getElementById('itemCategory').value;
   const selectedOccasion = document.querySelector('input[name="occasion"]:checked');
-  
   if (!categoryVal && !selectedOccasion) {
     validationMsg.style.display = 'block';
     setTimeout(() => { validationMsg.style.display = 'none'; }, 4000);
@@ -414,19 +416,15 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
       ocasiones: selectedOccasion?.value || null,
       fecha: new Date().toISOString()
     });
-    
     status.innerText = '';
     itemName.value = '';
     itemDesc.value = '';
     itemCategory.value = '';
-    
     if (selectedOccasion) selectedOccasion.checked = false;
-    
     e.target.reset();
     document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
     imagePreviewContainer.classList.remove('active');
     document.getElementById('dropdownSelectedText').innerText = 'Ninguna categoría';
-    
     pageSnapshots = [null];
     currentPage = 1;
     updateExclusiveLogic();

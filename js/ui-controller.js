@@ -494,15 +494,6 @@ document.getElementById('logoutBtn')?.addEventListener('click', async () => {
   window.location.href = 'index.html';
 });
 
-document.querySelectorAll('.table-scroll').forEach(el => {
-  el.addEventListener('touchstart', () => {}, { passive: true });
-
-  el.addEventListener('touchmove', e => {
-    if (el.scrollWidth > el.clientWidth) {
-      e.stopPropagation();
-    }
-  }, { passive: true });
-});
 
 loadCategories();
 loadOccasions();

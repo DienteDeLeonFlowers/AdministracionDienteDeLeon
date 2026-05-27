@@ -30,26 +30,19 @@
 
       <nav class="sidebar-menu">
         <div class="nav-indicator"></div>
-
         <button class="menu-btn active" data-target="panel-catalog">
-          <i class="fa-solid fa-images"></i>
-          <span>Catálogo / Ramos</span>
+          <i class="fa-solid fa-images"></i> <span>Catálogo / Ramos</span>
         </button>
-
         <button class="menu-btn" data-target="panel-categories">
-          <i class="fa-solid fa-layer-group"></i>
-          <span>Categorías Fijas</span>
+          <i class="fa-solid fa-layer-group"></i> <span>Categorías Fijas</span>
         </button>
-
         <button class="menu-btn" data-target="panel-occasions">
-          <i class="fa-solid fa-calendar-check"></i>
-          <span>Fechas Especiales</span>
+          <i class="fa-solid fa-calendar-check"></i> <span>Fechas Especiales</span>
         </button>
       </nav>
 
       <button id="logoutBtn" class="btn-logout">
-        <i class="fa-solid fa-right-from-bracket"></i>
-        <span>Cerrar Sesión</span>
+        <i class="fa-solid fa-right-from-bracket"></i> <span>Cerrar Sesión</span>
       </button>
     </aside>
 
@@ -58,13 +51,11 @@
       <section id="panel-catalog" class="crud-section active">
         <div class="dashboard-card">
           <h2>Subir Nuevo Arreglo</h2>
-
           <form id="uploadForm">
             <div class="input-group">
               <i class="fa-solid fa-tag input-icon"></i>
               <input type="text" id="itemName" placeholder="Nombre del ramo" required>
             </div>
-
             <div class="input-group">
               <i class="fa-solid fa-align-left input-icon textarea-icon"></i>
               <textarea id="itemDesc" placeholder="Descripción / Receta floral" required></textarea>
@@ -76,18 +67,12 @@
                 <span id="dropdownSelectedText">Ninguna categoría</span>
                 <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
               </div>
-
               <ul class="dropdown-menu" id="dropdownMenuCategories"></ul>
-
               <input type="hidden" id="itemCategory" value="">
             </div>
 
             <div class="occasions-sect">
-              <label class="sect-title">
-                <i class="fa-solid fa-calendar-check"></i>
-                Fechas Especiales / Ocasiones
-              </label>
-
+              <label class="sect-title"><i class="fa-solid fa-calendar-check"></i> Fechas Especiales / Ocasiones</label>
               <div class="checkbox-grid" id="checkboxGridOccasions"></div>
             </div>
 
@@ -96,31 +81,20 @@
                 <i class="fa-solid fa-cloud-arrow-up"></i>
                 <span>Seleccionar imagen del arreglo</span>
               </label>
-
               <input type="file" id="itemImg" accept="image/*" required>
-
-              <div id="file-name-preview" class="file-preview-text">
-                Ningún archivo seleccionado
-              </div>
+              <div id="file-name-preview" class="file-preview-text">Ningún archivo seleccionado</div>
             </div>
 
             <div class="image-preview-container" id="imagePreviewContainer">
-              <button type="button" class="btn-remove-image" id="btnRemoveImage">
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-
+              <button type="button" class="btn-remove-image" id="btnRemoveImage"><i class="fa-solid fa-xmark"></i></button>
               <img src="" alt="Vista previa" id="imagePreview">
             </div>
 
             <div id="validationMessage" class="validation-error" style="display:none;">
-              <i class="fa-solid fa-circle-exclamation"></i>
-              Por favor, selecciona una categoría o una fecha especial.
+              <i class="fa-solid fa-circle-exclamation"></i> Por favor, selecciona una categoría o una fecha especial.
             </div>
 
-            <button type="submit" id="submitBtn" class="btn-primary">
-              Publicar en Catálogo
-            </button>
-
+            <button type="submit" id="submitBtn" class="btn-primary">Publicar en Catálogo</button>
             <div id="status"></div>
           </form>
         </div>
@@ -131,47 +105,32 @@
           <div class="filter-bar">
             <div class="input-group search-group">
               <i class="fa-solid fa-magnifying-glass input-icon"></i>
-
-              <input
-                type="text"
-                id="searchInput"
-                placeholder="Buscar por nombre..."
-                oninput="applyFilters()"
-              >
+              <input type="text" id="searchInput" placeholder="Buscar por nombre..." oninput="applyFilters()">
             </div>
-
             <div class="custom-dropdown filter-dropdown" id="filterDropdown">
               <div class="dropdown-trigger">
                 <i class="fa-solid fa-filter dropdown-icon-left"></i>
                 <span id="filterSelectedText">Todas</span>
                 <i class="fa-solid fa-chevron-down dropdown-arrow"></i>
               </div>
-
               <ul class="dropdown-menu" id="dropdownMenuFilter"></ul>
-
               <input type="hidden" id="filterCategory" value="">
             </div>
           </div>
 
           <div class="table-responsive">
-            <div class="table-scroll">
-
-              <table>
-                <thead>
-                  <tr>
-                    <th>Imagen</th>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Clasificación</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-
-                <tbody id="catalogTableBody"></tbody>
-              </table>
-
-            </div>
-
+            <table>
+              <thead>
+                <tr>
+                  <th>Imagen</th>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th>Clasificación</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="catalogTableBody"></tbody>
+            </table>
             <div id="paginationBar" class="pagination-bar"></div>
           </div>
         </div>
@@ -180,44 +139,27 @@
       <section id="panel-categories" class="crud-section">
         <div class="dashboard-card mb-2">
           <h2>Gestionar Categorías Fijas</h2>
-
           <form id="categoryForm">
             <div class="input-group">
               <i class="fa-solid fa-folder-plus input-icon"></i>
-
-              <input
-                type="text"
-                id="newCategoryName"
-                placeholder="Ej. Canastas"
-                required
-              >
+              <input type="text" id="newCategoryName" placeholder="Ej. Canastas" required>
             </div>
-
-            <button type="submit" class="btn-primary">
-              Agregar Categoría
-            </button>
+            <button type="submit" class="btn-primary">Agregar Categoría</button>
           </form>
         </div>
-
         <div class="management-card">
           <h3>Categorías Activas</h3>
-
           <div class="table-responsive">
-            <div class="table-scroll">
-
-              <table>
-                <thead>
-                  <tr>
-                    <th>Nombre de la Categoría</th>
-                    <th>Estatus</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-
-                <tbody id="categoriesTableBody"></tbody>
-              </table>
-
-            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre de la Categoría</th>
+                  <th>Estatus</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="categoriesTableBody"></tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -225,65 +167,40 @@
       <section id="panel-occasions" class="crud-section">
         <div class="dashboard-card mb-2">
           <h2>Gestionar Fechas Especiales</h2>
-
           <form id="occasionForm">
             <div class="input-group">
               <i class="fa-solid fa-calendar-plus input-icon"></i>
-
-              <input
-                type="text"
-                id="newOccasionName"
-                placeholder="Ej. Cumpleaños"
-                required
-              >
+              <input type="text" id="newOccasionName" placeholder="Ej. Cumpleaños" required>
             </div>
-
-            <button type="submit" class="btn-primary">
-              Agregar Fecha Especial
-            </button>
+            <button type="submit" class="btn-primary">Agregar Fecha Especial</button>
           </form>
         </div>
-
         <div class="management-card">
           <h3>Fechas Especiales Activas</h3>
-
           <div class="table-responsive">
-            <div class="table-scroll">
-
-              <table>
-                <thead>
-                  <tr>
-                    <th>Nombre de la Ocasión</th>
-                    <th>Estatus</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-
-                <tbody id="occasionsTableBody"></tbody>
-              </table>
-
-            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre de la Ocasión</th>
+                  <th>Estatus</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="occasionsTableBody"></tbody>
+            </table>
           </div>
         </div>
       </section>
-
     </main>
   </div>
 
   <div class="crud-modal" id="editModal">
     <div class="modal-content">
-      <button class="close-modal" id="closeModalBtn">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
+      <button class="close-modal" id="closeModalBtn"><i class="fa-solid fa-xmark"></i></button>
       <h3 id="modalTitle">Editar Elemento</h3>
-
       <form id="modalEditForm">
         <div id="modalFormFields"></div>
-
-        <button type="submit" id="modalSubmitBtn" class="btn-primary">
-          Confirmar
-        </button>
+        <button type="submit" id="modalSubmitBtn" class="btn-primary">Confirmar</button>
       </form>
     </div>
   </div>

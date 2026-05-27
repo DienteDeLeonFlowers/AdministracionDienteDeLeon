@@ -650,8 +650,19 @@ input[type="radio"] {
 
 .table-responsive {
   width: 100%;
-  overflow: hidden;
-  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: none;
+  touch-action: pan-x;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.95rem;
+  table-layout: auto;
 }
 
 .table-scroll {

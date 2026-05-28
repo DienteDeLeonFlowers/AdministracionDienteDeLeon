@@ -7,7 +7,7 @@ html {
 
 :root {
   --bg-cream: #f4f1ea;
-  --bg-gradient: linear-gradient(135deg, #f4f1ea 0%, #e8e3d7 50%, #ded7c6 100%);
+  --bg-gradient: linear-gradient(180deg, #f4f1ea 0%, #e8e3d7 50%, #ded7c6 100%);
   --green-corporate: #142417;
   --green-neon: #00cc52;
   --green-glow: rgba(0, 204, 82, 0.1);

@@ -24,6 +24,21 @@ const imagePreviewContainer = document.getElementById('imagePreviewContainer');
 const categoryDropdown = document.getElementById('categoryDropdown');
 const filterDropdown = document.getElementById('filterDropdown');
 
+function showToast(message, type = 'success') {
+  const existing = document.querySelector('.toast-notification');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.className = `toast-notification toast-${type}`;
+  const icon = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-exclamation"></i>';
+  toast.innerHTML = `${icon}<span>${message}</span>`;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('toast-visible'));
+  setTimeout(() => {
+    toast.classList.remove('toast-visible');
+    toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+  }, 3500);
+}
+
 function resetInactivityTimer() {
   clearTimeout(inactivityTimeout);
   inactivityTimeout = setTimeout(async () => {
@@ -287,16 +302,26 @@ function renderTable(containerId, data, colName) {
 }
 
 window.toggleStatus = async (col, id, stat) => {
-  col === 'categorias' ? await toggleCategoryStatus(id, stat) : await toggleOccasionStatus(id, stat);
-  clearCache(col === 'categorias' ? 'cats' : 'occs');
-  col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+  try {
+    col === 'categorias' ? await toggleCategoryStatus(id, stat) : await toggleOccasionStatus(id, stat);
+    clearCache(col === 'categorias' ? 'cats' : 'occs');
+    col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+    showToast('Estatus actualizado correctamente.');
+  } catch (err) {
+    showToast('Error al actualizar el estatus.', 'error');
+  }
 };
 
 window.deleteItem = async (col, id) => {
   openModal('Eliminar', '<p>¿Confirmas que deseas eliminar este elemento?</p>', async () => {
-    col === 'categorias' ? await deleteCategory(id) : await deleteOccasion(id);
-    clearCache(col === 'categorias' ? 'cats' : 'occs');
-    col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+    try {
+      col === 'categorias' ? await deleteCategory(id) : await deleteOccasion(id);
+      clearCache(col === 'categorias' ? 'cats' : 'occs');
+      col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+      showToast('Elemento eliminado correctamente.');
+    } catch (err) {
+      showToast('Error al eliminar el elemento.', 'error');
+    }
   });
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
@@ -308,9 +333,14 @@ window.editItem = (col, id, nombre) => {
     async () => {
       const val = document.getElementById('modalNombre').value.trim();
       if (!val) return;
-      col === 'categorias' ? await updateCategory(id, val) : await updateOccasion(id, val);
-      clearCache(col === 'categorias' ? 'cats' : 'occs');
-      col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+      try {
+        col === 'categorias' ? await updateCategory(id, val) : await updateOccasion(id, val);
+        clearCache(col === 'categorias' ? 'cats' : 'occs');
+        col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+        showToast('Elemento actualizado correctamente.');
+      } catch (err) {
+        showToast('Error al actualizar el elemento.', 'error');
+      }
     }
   );
 };
@@ -325,8 +355,13 @@ window.editProduct = (id, nombre, descripcion) => {
       const nuevoNombre = document.getElementById('modalNombre').value.trim();
       const nuevaDesc = document.getElementById('modalDesc').value.trim();
       if (!nuevoNombre) return;
-      await updateProduct(id, { nombre: nuevoNombre, descripcion: nuevaDesc });
-      fetchPage(currentPage);
+      try {
+        await updateProduct(id, { nombre: nuevoNombre, descripcion: nuevaDesc });
+        fetchPage(currentPage);
+        showToast('Arreglo actualizado correctamente.');
+      } catch (err) {
+        showToast('Error al actualizar el arreglo.', 'error');
+      }
     }
   );
 };
@@ -340,8 +375,9 @@ window.removeProduct = async (id, imageUrl) => {
       pageSnapshots = [null];
       currentPage = 1;
       fetchPage(1);
+      showToast('Arreglo eliminado correctamente.');
     } catch (err) {
-      console.error('Error al eliminar:', err);
+      showToast('Error al eliminar el arreglo.', 'error');
     }
   });
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
@@ -442,17 +478,17 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
   const itemName = document.getElementById('itemName');
   const itemDesc = document.getElementById('itemDesc');
   const itemCategory = document.getElementById('itemCategory');
-  
+
   try {
     btn.disabled = true;
     status.style.color = 'inherit';
     status.innerText = 'Procesando...';
-    
+
     const webpBlob = await processToWebp(itemImg.files[0]);
     const refImg = ref(storage, `catalog/${Date.now()}.webp`);
     const uploadResult = await uploadBytes(refImg, webpBlob);
     const url = await getDownloadURL(uploadResult.ref);
-    
+
     await addProduct({
       nombre: itemName.value,
       descripcion: itemDesc.value,
@@ -461,14 +497,14 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
       ocasiones: selectedOccasion?.value || null,
       fecha: new Date().toISOString()
     });
-    
+
     await loadCategories(true);
     await loadOccasions(true);
-    
+
     status.innerText = '¡Arreglo subido con éxito!';
     status.style.color = '#00a84d';
     setTimeout(() => { status.innerText = ''; }, 3000);
-    
+
     e.target.reset();
     document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
     imagePreviewContainer.classList.remove('active');
@@ -487,18 +523,28 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
 
 document.getElementById('categoryForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  await addCategory(document.getElementById('newCategoryName').value.trim());
-  clearCache('cats');
-  loadCategories(true);
-  e.target.reset();
+  try {
+    await addCategory(document.getElementById('newCategoryName').value.trim());
+    clearCache('cats');
+    loadCategories(true);
+    e.target.reset();
+    showToast('Categoría agregada correctamente.');
+  } catch (err) {
+    showToast('Error al agregar la categoría.', 'error');
+  }
 });
 
 document.getElementById('occasionForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  await addOccasion(document.getElementById('newOccasionName').value.trim());
-  clearCache('occs');
-  loadOccasions(true);
-  e.target.reset();
+  try {
+    await addOccasion(document.getElementById('newOccasionName').value.trim());
+    clearCache('occs');
+    loadOccasions(true);
+    e.target.reset();
+    showToast('Fecha especial agregada correctamente.');
+  } catch (err) {
+    showToast('Error al agregar la fecha especial.', 'error');
+  }
 });
 
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {

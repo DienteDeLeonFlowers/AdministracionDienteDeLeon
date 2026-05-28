@@ -50,6 +50,12 @@ function resetInactivityTimer() {
 ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
   document.addEventListener(evt, resetInactivityTimer, { passive: true });
 });
+
+const contentPanel = document.querySelector('.content-panel');
+if (contentPanel) {
+  contentPanel.addEventListener('scroll', resetInactivityTimer, { passive: true });
+}
+
 resetInactivityTimer();
 
 function getCached(key) {
@@ -553,9 +559,9 @@ document.getElementById('logoutBtn')?.addEventListener('click', async () => {
 });
 
 document.querySelectorAll('.table-responsive').forEach(el => {
-  el.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
-  el.addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
-  el.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
+  el.addEventListener('touchstart', e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true });
+  el.addEventListener('touchmove', e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true });
+  el.addEventListener('touchend', e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true });
 });
 
 loadCategories();

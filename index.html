@@ -6,7 +6,8 @@
   <title>Login - Administrador</title>
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="css/login.css"> </head>
+  <link rel="stylesheet" href="css/login.css">
+</head>
 <body class="login-body">
   <div class="bg-particles">
     <div class="particle"></div>
@@ -24,7 +25,7 @@
 
     <h1>Administración Florería Diente de León</h1>
 
-    <form id="loginForm" onsubmit="return false;">
+    <form id="loginForm">
       <div class="input-group">
         <i class="fa-solid fa-user input-icon"></i>
         <input type="email" id="loginEmail" name="email" autocomplete="username" placeholder="Email" required>
@@ -40,6 +41,7 @@
       <div id="loginStatus"></div>
     </form>
   </div>
+
   <script type="module" src="js/controllers/loginController.js"></script>
 </body>
 </html>

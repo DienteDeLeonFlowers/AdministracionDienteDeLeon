@@ -45,7 +45,7 @@ if (loginForm) {
 
     login(email, pass)
       .then(() => {
-        loginForm.submit();
+        window.location.href = 'dashboard.html';
       })
       .catch((error) => {
         status.innerText = "ACCESO DENEGADO";

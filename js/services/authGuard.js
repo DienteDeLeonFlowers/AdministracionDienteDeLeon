@@ -10,4 +10,14 @@ export function protectRoute(isLoginPage = false) {
             document.body.classList.remove('loading');
         }
     });
+
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            monitorAuthState((user) => {
+                if (!user && !isLoginPage) {
+                    window.location.href = 'index.html?error=auth_required';
+                }
+            });
+        }
+    });
 }

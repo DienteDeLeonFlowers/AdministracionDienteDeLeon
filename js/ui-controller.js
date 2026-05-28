@@ -15,7 +15,7 @@ let pageSnapshots = [null];
 let currentPage = 1;
 const PAGE_SIZE = 10;
 const CACHE_TTL = 5 * 60 * 1000;
-const INACTIVITY_TIME = 15 * 60 * 1000;
+const INACTIVITY_TIME = 10 * 60 * 1000;
 let inactivityTimeout;
 
 const itemImg = document.getElementById('itemImg');
@@ -42,6 +42,7 @@ function showToast(message, type = 'success') {
 function resetInactivityTimer() {
   clearTimeout(inactivityTimeout);
   inactivityTimeout = setTimeout(async () => {
+    sessionStorage.clear();
     await logout();
     window.location.href = 'index.html';
   }, INACTIVITY_TIME);
@@ -554,6 +555,7 @@ document.getElementById('occasionForm')?.addEventListener('submit', async e => {
 });
 
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+  sessionStorage.clear();
   await logout();
   window.location.href = 'index.html';
 });

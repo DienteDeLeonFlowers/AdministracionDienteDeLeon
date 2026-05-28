@@ -34,20 +34,23 @@ if (toggleBtn && passInput) {
 }
 
 if (loginForm) {
-  loginForm.addEventListener('submit', async (e) => {
+  loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
-    
+
     const email = document.getElementById('loginEmail').value;
     const pass = document.getElementById('loginPassword').value;
 
-    try {
-      status.innerText = "Ingresando...";
-      status.style.color = "var(--sand-light)";
-      await login(email, pass);
-    } catch (error) {
-      status.innerText = "ACCESO DENEGADO";
-      status.style.color = "#ff3b30";
-      console.error("Error de autenticación:", error.message);
-    }
+    status.innerText = "Ingresando...";
+    status.style.color = "var(--sand-light)";
+
+    login(email, pass)
+      .then(() => {
+        loginForm.submit();
+      })
+      .catch((error) => {
+        status.innerText = "ACCESO DENEGADO";
+        status.style.color = "#ff3b30";
+        console.error("Error de autenticación:", error.message);
+      });
   });
 }

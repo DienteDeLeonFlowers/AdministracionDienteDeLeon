@@ -37,7 +37,19 @@ function showToast(message, type = 'success') {
   }, 3500);
 }
 
+async function checkInactivityOnLoad() {
+  const last = sessionStorage.getItem('last_activity');
+  if (last && Date.now() - Number(last) > INACTIVITY_TIME) {
+    sessionStorage.clear();
+    await logout();
+    window.location.href = 'index.html';
+    return true;
+  }
+  return false;
+}
+
 function resetInactivityTimer() {
+  sessionStorage.setItem('last_activity', Date.now());
   clearTimeout(inactivityTimeout);
   inactivityTimeout = setTimeout(async () => {
     sessionStorage.clear();
@@ -54,8 +66,6 @@ const contentPanel = document.querySelector('.content-panel');
 if (contentPanel) {
   contentPanel.addEventListener('scroll', resetInactivityTimer, { passive: true });
 }
-
-resetInactivityTimer();
 
 function getCached(key) {
   try {
@@ -564,8 +574,12 @@ document.querySelectorAll('.table-responsive').forEach(el => {
   el.addEventListener('touchend', e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true });
 });
 
-protectRoute(false, () => {
-  loadCategories();
-  loadOccasions();
-  fetchPage(1);
+protectRoute(false, async () => {
+  const expired = await checkInactivityOnLoad();
+  if (!expired) {
+    resetInactivityTimer();
+    loadCategories();
+    loadOccasions();
+    fetchPage(1);
+  }
 });

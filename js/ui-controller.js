@@ -10,6 +10,7 @@ import { addProduct, updateProduct, deleteProduct } from './services/productServ
 
 let allProducts = [];
 let pageSnapshots = [null];
+let pageCache = {};
 let currentPage = 1;
 const PAGE_SIZE = 10;
 const CACHE_TTL = 5 * 60 * 1000;
@@ -156,11 +157,11 @@ function buildOccasionCheckboxes(data) {
   document.querySelectorAll('input[name="occasion"]').forEach(cb => cb.addEventListener('click', updateExclusiveLogic));
 }
 
-async function updateFilterSelects() {
+function updateFilterSelects() {
   const menu = document.getElementById('dropdownMenuFilter');
   if (!menu) return;
-  const cats = getCached('cats') || await getDocs(collection(db, 'categorias')).then(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
-  const occs = getCached('occs') || await getDocs(collection(db, 'ocasiones')).then(s => s.docs.map(d => ({ id: d.id, ...d.data() })));
+  const cats = getCached('cats') || [];
+  const occs = getCached('occs') || [];
 
   let html = `<li class="dropdown-item filter-item" data-value="" data-label="Todas">
     <span class="filter-badge filter-all">Todas</span>
@@ -229,6 +230,14 @@ window.applyFilters = () => {
 };
 
 async function fetchPage(page) {
+  if (pageCache[page]) {
+    allProducts = pageCache[page].data;
+    currentPage = page;
+    renderCatalogTable(allProducts);
+    renderPagination(currentPage, pageCache[page].totalPages, pageCache[page].hasMore);
+    return;
+  }
+
   const cursor = pageSnapshots[page - 1];
   let q = query(collection(db, 'productos'), orderBy('fecha', 'desc'), limit(PAGE_SIZE));
   if (cursor) {
@@ -244,8 +253,16 @@ async function fetchPage(page) {
   currentPage = page;
   const hasMore = snap.docs.length === PAGE_SIZE;
   const totalPages = hasMore ? Math.max(pageSnapshots.filter(Boolean).length, page + 1) : page;
+
+  pageCache[page] = { data, totalPages, hasMore };
+
   renderCatalogTable(allProducts);
   renderPagination(currentPage, totalPages, hasMore);
+}
+
+function invalidatePageCache() {
+  pageCache = {};
+  pageSnapshots = [null];
 }
 
 function renderPagination(current, total, hasMore) {
@@ -372,6 +389,7 @@ window.editProduct = (id, nombre, descripcion) => {
       if (!nuevoNombre) return;
       try {
         await updateProduct(id, { nombre: nuevoNombre, descripcion: nuevaDesc });
+        invalidatePageCache();
         fetchPage(currentPage);
         showToast('Arreglo actualizado correctamente.');
       } catch (err) {
@@ -387,7 +405,7 @@ window.removeProduct = async (id, imageUrl) => {
       await deleteProduct(id);
       const imageRef = ref(storage, imageUrl);
       await deleteObject(imageRef);
-      pageSnapshots = [null];
+      invalidatePageCache();
       currentPage = 1;
       fetchPage(1);
       showToast('Arreglo eliminado correctamente.');
@@ -513,9 +531,6 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
       fecha: new Date().toISOString()
     });
 
-    await loadCategories(true);
-    await loadOccasions(true);
-
     status.innerText = '¡Arreglo subido con éxito!';
     status.style.color = '#00a84d';
     setTimeout(() => { status.innerText = ''; }, 3000);
@@ -524,7 +539,7 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
     document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
     imagePreviewContainer.classList.remove('active');
     document.getElementById('dropdownSelectedText').innerText = 'Ninguna categoría';
-    pageSnapshots = [null];
+    invalidatePageCache();
     currentPage = 1;
     updateExclusiveLogic();
     fetchPage(1);

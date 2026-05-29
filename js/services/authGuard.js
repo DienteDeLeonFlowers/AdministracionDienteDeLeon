@@ -1,24 +1,28 @@
-import { monitorAuthState } from './authService.js';
+import { getAuthState } from './authService.js';
+import { logout } from './authService.js';
 
-export function protectRoute(isLoginPage = false, onReady = null) {
-  monitorAuthState((user) => {
-    if (!user && !isLoginPage) {
-      window.location.href = 'index.html?error=auth_required';
-    } else if (user && isLoginPage) {
-      window.location.href = 'dashboard.html';
-    } else {
-      document.body.classList.remove('loading');
-      if (onReady) onReady();
-    }
-  });
+export async function protectRoute(isLoginPage = false, onReady = null) {
+  const user = await getAuthState();
 
-  window.addEventListener('pageshow', (event) => {
+  if (!user && !isLoginPage) {
+    window.location.href = 'index.html?error=auth_required';
+    return;
+  }
+
+  if (user && isLoginPage) {
+    window.location.href = 'dashboard.html';
+    return;
+  }
+
+  document.body.classList.remove('loading');
+  if (onReady) onReady();
+
+  window.addEventListener('pageshow', async (event) => {
     if (event.persisted) {
-      monitorAuthState((user) => {
-        if (!user && !isLoginPage) {
-          window.location.href = 'index.html?error=auth_required';
-        }
-      });
+      const currentUser = await getAuthState();
+      if (!currentUser && !isLoginPage) {
+        window.location.href = 'index.html?error=auth_required';
+      }
     }
   });
 }

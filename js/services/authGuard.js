@@ -1,5 +1,4 @@
 import { getAuthState } from './authService.js';
-import { logout } from './authService.js';
 
 export async function protectRoute(isLoginPage = false, onReady = null) {
   const user = await getAuthState();
@@ -21,7 +20,7 @@ export async function protectRoute(isLoginPage = false, onReady = null) {
     if (event.persisted) {
       const currentUser = await getAuthState();
       if (!currentUser && !isLoginPage) {
-        window.location.href = 'index.html?error=auth_required';
+        window.location.replace('index.html?error=auth_required');
       }
     }
   });

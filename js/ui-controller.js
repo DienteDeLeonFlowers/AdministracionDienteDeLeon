@@ -8,14 +8,12 @@ import { addCategory, updateCategory, toggleCategoryStatus, deleteCategory } fro
 import { addOccasion, updateOccasion, toggleOccasionStatus, deleteOccasion } from './services/occasionService.js';
 import { addProduct, updateProduct, deleteProduct } from './services/productService.js';
 
-protectRoute();
-
 let allProducts = [];
 let pageSnapshots = [null];
 let currentPage = 1;
 const PAGE_SIZE = 10;
 const CACHE_TTL = 5 * 60 * 1000;
-const INACTIVITY_TIME = 5 * 60 * 1000;
+const INACTIVITY_TIME = 15 * 60 * 1000;
 let inactivityTimeout;
 
 const itemImg = document.getElementById('itemImg');
@@ -566,6 +564,8 @@ document.querySelectorAll('.table-responsive').forEach(el => {
   el.addEventListener('touchend', e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true });
 });
 
-loadCategories();
-loadOccasions();
-fetchPage(1);
+protectRoute(false, () => {
+  loadCategories();
+  loadOccasions();
+  fetchPage(1);
+});

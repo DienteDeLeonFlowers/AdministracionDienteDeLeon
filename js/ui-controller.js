@@ -13,7 +13,7 @@ let pageSnapshots = [null];
 let pageCache = {};
 let currentPage = 1;
 const PAGE_SIZE = 10;
-const CACHE_TTL = 1 * 60 * 1000;
+const CACHE_TTL = 5 * 60 * 1000;
 let inactivityTimeout;
 
 const itemImg = document.getElementById('itemImg');
@@ -38,7 +38,7 @@ function showToast(message, type = 'success') {
 }
 
 function resetInactivityTimer() {
-  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now());
+  sessionStorage.setItem(LAST_ACTIVITY_KEY, Date.now());
   clearTimeout(inactivityTimeout);
   inactivityTimeout = setTimeout(async () => {
     await logout();
@@ -48,7 +48,7 @@ function resetInactivityTimer() {
 
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible') {
-    const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || '0');
+    const last = Number(sessionStorage.getItem(LAST_ACTIVITY_KEY) || '0');
     if (!last || Date.now() - last > INACTIVITY_TIME) {
       await logout();
       window.location.replace('index.html');
@@ -238,7 +238,6 @@ async function fetchPage(page) {
     renderPagination(currentPage, pageCache[page].totalPages, pageCache[page].hasMore);
     return;
   }
-
   const cursor = pageSnapshots[page - 1];
   let q = query(collection(db, 'productos'), orderBy('fecha', 'desc'), limit(PAGE_SIZE));
   if (cursor) {

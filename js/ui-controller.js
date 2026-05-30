@@ -2,7 +2,7 @@ import { db, storage } from './config.js';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 import { collection, query, orderBy, limit, startAfter, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { processToWebp } from './converter.js';
-import { logout } from './services/authService.js';
+import { logout, LAST_ACTIVITY_KEY, INACTIVITY_TIME } from './services/authService.js';
 import { protectRoute } from './services/authGuard.js';
 import { addCategory, updateCategory, toggleCategoryStatus, deleteCategory } from './services/categoryService.js';
 import { addOccasion, updateOccasion, toggleOccasionStatus, deleteOccasion } from './services/occasionService.js';
@@ -14,7 +14,6 @@ let pageCache = {};
 let currentPage = 1;
 const PAGE_SIZE = 10;
 const CACHE_TTL = 5 * 60 * 1000;
-const INACTIVITY_TIME = 10 * 60 * 1000;
 let inactivityTimeout;
 
 const itemImg = document.getElementById('itemImg');
@@ -38,26 +37,24 @@ function showToast(message, type = 'success') {
   }, 3500);
 }
 
-async function checkInactivityOnLoad() {
-  const last = sessionStorage.getItem('last_activity');
-  if (last && Date.now() - Number(last) > INACTIVITY_TIME) {
-    sessionStorage.clear();
-    await logout();
-    window.location.href = 'index.html';
-    return true;
-  }
-  return false;
-}
-
 function resetInactivityTimer() {
-  sessionStorage.setItem('last_activity', Date.now());
+  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now());
   clearTimeout(inactivityTimeout);
   inactivityTimeout = setTimeout(async () => {
-    sessionStorage.clear();
     await logout();
-    window.location.href = 'index.html';
+    window.location.replace('index.html');
   }, INACTIVITY_TIME);
 }
+
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    const last = localStorage.getItem(LAST_ACTIVITY_KEY);
+    if (!last || Date.now() - Number(last) > INACTIVITY_TIME) {
+      await logout();
+      window.location.replace('index.html');
+    }
+  }
+});
 
 ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
   document.addEventListener(evt, resetInactivityTimer, { passive: true });
@@ -253,9 +250,7 @@ async function fetchPage(page) {
   currentPage = page;
   const hasMore = snap.docs.length === PAGE_SIZE;
   const totalPages = hasMore ? Math.max(pageSnapshots.filter(Boolean).length, page + 1) : page;
-
   pageCache[page] = { data, totalPages, hasMore };
-
   renderCatalogTable(allProducts);
   renderPagination(currentPage, totalPages, hasMore);
 }
@@ -578,9 +573,8 @@ document.getElementById('occasionForm')?.addEventListener('submit', async e => {
 });
 
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
-  sessionStorage.clear();
   await logout();
-  window.location.href = 'index.html';
+  window.location.replace('index.html');
 });
 
 document.querySelectorAll('.table-responsive').forEach(el => {
@@ -589,13 +583,9 @@ document.querySelectorAll('.table-responsive').forEach(el => {
   el.addEventListener('touchend', e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true });
 });
 
-protectRoute(false, async () => {
-  const expired = await checkInactivityOnLoad();
-  if (!expired) {
-    resetInactivityTimer();
-    loadCategories();
-    loadOccasions();
-    fetchPage(1);
-  }
+protectRoute(false, () => {
+  resetInactivityTimer();
+  loadCategories();
+  loadOccasions();
+  fetchPage(1);
 });
-

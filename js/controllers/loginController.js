@@ -39,17 +39,20 @@ if (loginForm) {
 
     const email = document.getElementById('loginEmail').value;
     const pass = document.getElementById('loginPassword').value;
+    const submitBtn = document.getElementById('submitBtn');
 
     status.innerText = "Ingresando...";
     status.style.color = "var(--sand-light)";
+    if (submitBtn) submitBtn.disabled = true;
 
     login(email, pass)
       .then(() => {
-        window.location.href = 'dashboard.html';
+        window.location.replace('dashboard.html');
       })
       .catch((error) => {
         status.innerText = "ACCESO DENEGADO";
         status.style.color = "#ff3b30";
+        if (submitBtn) submitBtn.disabled = false;
         console.error("Error de autenticación:", error.message);
       });
   });

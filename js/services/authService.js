@@ -18,7 +18,7 @@ export async function login(email, password) {
 
 export async function logout() {
   localStorage.setItem(FORCE_LOGOUT_KEY, '1');
-  localStorage.removeItem(LAST_ACTIVITY_KEY);
+  localStorage.setItem(LAST_ACTIVITY_KEY, '0');
   sessionStorage.clear();
   await signOut(auth);
 }
@@ -27,16 +27,20 @@ export function getAuthState() {
   return new Promise((resolve) => {
     const unsub = onAuthStateChanged(auth, (user) => {
       unsub();
-      if (user && localStorage.getItem(FORCE_LOGOUT_KEY) === '1') {
+      if (!user) {
+        resolve(null);
+        return;
+      }
+      if (localStorage.getItem(FORCE_LOGOUT_KEY) === '1') {
         signOut(auth);
         resolve(null);
         return;
       }
-      const last = localStorage.getItem(LAST_ACTIVITY_KEY);
-      if (user && last && Date.now() - Number(last) > INACTIVITY_TIME) {
+      const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || '0');
+      if (!last || Date.now() - last > INACTIVITY_TIME) {
         signOut(auth);
         localStorage.setItem(FORCE_LOGOUT_KEY, '1');
-        localStorage.removeItem(LAST_ACTIVITY_KEY);
+        localStorage.setItem(LAST_ACTIVITY_KEY, '0');
         sessionStorage.clear();
         resolve(null);
         return;

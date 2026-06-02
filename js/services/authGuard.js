@@ -11,46 +11,57 @@ function sessionExpired() {
 
 export async function protectRoute(isLoginPage = false, onReady = null) {
   if (!isLoginPage) {
-    document.body.style.visibility = 'hidden';
-    if (sessionExpired()) {
+    document.body.style.display = 'none';
+  }
+
+  const checkAccess = async () => {
+    if (!isLoginPage && sessionExpired()) {
       await logout();
       window.location.replace('index.html?error=auth_required');
-      return;
+      return false;
     }
+
+    const user = await getAuthState();
+
+    if (!user && !isLoginPage) {
+      await logout();
+      window.location.replace('index.html?error=auth_required');
+      return false;
+    }
+
+    if (user && isLoginPage) {
+      window.location.replace('dashboard.html');
+      return false;
+    }
+
+    return true;
+  };
+
+  const canAccess = await checkAccess();
+
+  if (canAccess) {
+    if (!isLoginPage) document.body.style.display = '';
+    document.body.classList.remove('loading');
+    if (onReady) onReady();
   }
-
-  const user = await getAuthState();
-
-  if (!user && !isLoginPage) {
-    await logout();
-    window.location.replace('index.html?error=auth_required');
-    return;
-  }
-
-  if (user && isLoginPage) {
-    window.location.replace('dashboard.html');
-    return;
-  }
-
-  document.body.style.visibility = '';
-  document.body.classList.remove('loading');
-  if (onReady) onReady();
 
   window.addEventListener('pageshow', async (event) => {
-    if (event.persisted) {
-      document.body.style.visibility = 'hidden';
-      if (sessionExpired()) {
+    const isBackForward = performance.getEntriesByType("navigation").length > 0 && performance.getEntriesByType("navigation")[0].type === "back_forward";
+    
+    if (event.persisted || isBackForward) {
+      if (!isLoginPage) document.body.style.display = 'none';
+      const stillValid = await checkAccess();
+      if (stillValid && !isLoginPage) document.body.style.display = '';
+    }
+  });
+
+  window.addEventListener('storage', async (event) => {
+    if (event.key === 'logout_event' || (event.key === SESSION_ID_KEY && !event.newValue)) {
+      if (!isLoginPage) {
+        document.body.style.display = 'none';
         await logout();
         window.location.replace('index.html?error=auth_required');
-        return;
       }
-      const currentUser = await getAuthState();
-      if (!currentUser) {
-        await logout();
-        window.location.replace('index.html?error=auth_required');
-        return;
-      }
-      document.body.style.visibility = '';
     }
   });
 }

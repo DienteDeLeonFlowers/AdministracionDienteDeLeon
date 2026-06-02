@@ -53,7 +53,6 @@ if (loginForm) {
         status.innerText = "ACCESO DENEGADO";
         status.style.color = "#ff3b30";
         if (submitBtn) submitBtn.disabled = false;
-        console.error("Error de autenticación:", error.message);
       });
   });
 }

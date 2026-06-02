@@ -22,7 +22,7 @@ export async function login(email, password) {
   const sid = crypto.randomUUID();
   sessionStorage.setItem(SESSION_ID_KEY, sid);
   localStorage.setItem(SESSION_ID_KEY, sid);
-  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now());
+  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
   return result;
 }
 
@@ -30,7 +30,9 @@ export async function logout() {
   sessionStorage.clear();
   localStorage.removeItem(SESSION_ID_KEY);
   localStorage.removeItem(LAST_ACTIVITY_KEY);
+  localStorage.setItem('logout_event', Date.now().toString());
   try { await signOut(auth); } catch (_) {}
+  localStorage.removeItem('logout_event');
 }
 
 export function getAuthState() {
@@ -41,20 +43,15 @@ export function getAuthState() {
 
       const localSid = localStorage.getItem(SESSION_ID_KEY);
       const sessionSid = sessionStorage.getItem(SESSION_ID_KEY);
+      
       if (!localSid || !sessionSid || localSid !== sessionSid) {
-        signOut(auth);
-        sessionStorage.clear();
-        resolve(null);
+        logout().then(() => resolve(null));
         return;
       }
 
       const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || '0');
       if (!last || Date.now() - last > INACTIVITY_TIME) {
-        signOut(auth);
-        sessionStorage.clear();
-        localStorage.removeItem(SESSION_ID_KEY);
-        localStorage.removeItem(LAST_ACTIVITY_KEY);
-        resolve(null);
+        logout().then(() => resolve(null));
         return;
       }
 

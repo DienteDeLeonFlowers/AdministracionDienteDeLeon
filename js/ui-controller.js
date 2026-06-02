@@ -38,25 +38,33 @@ function showToast(message, type = 'success') {
 }
 
 function resetInactivityTimer() {
-  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now());
+  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
+  startTimer();
+}
+
+function startTimer() {
   clearTimeout(inactivityTimeout);
   inactivityTimeout = setTimeout(async () => {
     await logout();
-    window.location.replace('index.html');
+    window.location.replace('index.html?error=auth_required');
   }, INACTIVITY_TIME);
 }
+
+window.addEventListener('storage', (e) => {
+  if (e.key === LAST_ACTIVITY_KEY && e.newValue) {
+    startTimer();
+  }
+});
 
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible') {
     const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || '0');
     if (!last || Date.now() - last > INACTIVITY_TIME) {
       await logout();
-      window.location.replace('index.html');
+      window.location.replace('index.html?error=auth_required');
     } else {
-      resetInactivityTimer();
+      startTimer();
     }
-  } else {
-    clearTimeout(inactivityTimeout);
   }
 });
 

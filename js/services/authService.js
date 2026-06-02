@@ -11,7 +11,7 @@ const CORREO_PERMITIDO = "soportedientedeleontlapacoyan@gmail.com";
 
 export const LAST_ACTIVITY_KEY = 'session_last_activity';
 export const SESSION_ID_KEY = 'session_id';
-export const INACTIVITY_TIME = 1 * 60 * 1000;
+export const INACTIVITY_TIME = 10 * 60 * 1000;
 
 export async function login(email, password) {
   if (email !== CORREO_PERMITIDO) {

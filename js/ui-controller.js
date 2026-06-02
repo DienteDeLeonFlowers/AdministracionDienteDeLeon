@@ -13,7 +13,7 @@ let pageSnapshots = [null];
 let pageCache = {};
 let currentPage = 1;
 const PAGE_SIZE = 10;
-const CACHE_TTL = 1 * 60 * 1000;
+const CACHE_TTL = 60 * 60 * 1000;
 
 let lastWriteTime = 0;
 let inactivityChecker;

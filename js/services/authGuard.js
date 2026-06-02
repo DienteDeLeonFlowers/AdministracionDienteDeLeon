@@ -1,8 +1,12 @@
-import { getAuthState, logout, LAST_ACTIVITY_KEY, INACTIVITY_TIME } from './authService.js';
+import { getAuthState, logout, LAST_ACTIVITY_KEY, SESSION_ID_KEY, INACTIVITY_TIME } from './authService.js';
 
 function sessionExpired() {
-  const last = Number(sessionStorage.getItem(LAST_ACTIVITY_KEY) || '0');
-  return !last || Date.now() - last > INACTIVITY_TIME;
+  const localSid = localStorage.getItem(SESSION_ID_KEY);
+  const sessionSid = sessionStorage.getItem(SESSION_ID_KEY);
+  if (!localSid || !sessionSid || localSid !== sessionSid) return true;
+  const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || '0');
+  if (!last || Date.now() - last > INACTIVITY_TIME) return true;
+  return false;
 }
 
 export async function protectRoute(isLoginPage = false, onReady = null) {
@@ -18,6 +22,7 @@ export async function protectRoute(isLoginPage = false, onReady = null) {
   const user = await getAuthState();
 
   if (!user && !isLoginPage) {
+    await logout();
     window.location.replace('index.html?error=auth_required');
     return;
   }
@@ -41,6 +46,7 @@ export async function protectRoute(isLoginPage = false, onReady = null) {
       }
       const currentUser = await getAuthState();
       if (!currentUser) {
+        await logout();
         window.location.replace('index.html?error=auth_required');
         return;
       }

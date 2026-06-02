@@ -9,7 +9,8 @@ import {
 
 const CORREO_PERMITIDO = "soportedientedeleontlapacoyan@gmail.com";
 
-export const LAST_ACTIVITY_KEY = 'last_activity';
+export const LAST_ACTIVITY_KEY = 'session_last_activity';
+export const SESSION_ID_KEY = 'session_id';
 export const INACTIVITY_TIME = 15 * 60 * 1000;
 
 export async function login(email, password) {
@@ -18,30 +19,45 @@ export async function login(email, password) {
   }
   await setPersistence(auth, browserSessionPersistence);
   const result = await signInWithEmailAndPassword(auth, email, password);
-  sessionStorage.setItem(LAST_ACTIVITY_KEY, Date.now());
+  const sid = crypto.randomUUID();
+  sessionStorage.setItem(SESSION_ID_KEY, sid);
+  localStorage.setItem(SESSION_ID_KEY, sid);
+  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now());
   return result;
 }
 
 export async function logout() {
   sessionStorage.clear();
-  await signOut(auth);
+  localStorage.removeItem(SESSION_ID_KEY);
+  localStorage.removeItem(LAST_ACTIVITY_KEY);
+  try { await signOut(auth); } catch (_) {}
 }
 
 export function getAuthState() {
   return new Promise((resolve) => {
     const unsub = onAuthStateChanged(auth, (user) => {
       unsub();
-      if (!user) {
-        resolve(null);
-        return;
-      }
-      const last = Number(sessionStorage.getItem(LAST_ACTIVITY_KEY) || '0');
-      if (!last || Date.now() - last > INACTIVITY_TIME) {
+      if (!user) { resolve(null); return; }
+
+      const localSid = localStorage.getItem(SESSION_ID_KEY);
+      const sessionSid = sessionStorage.getItem(SESSION_ID_KEY);
+      if (!localSid || !sessionSid || localSid !== sessionSid) {
         signOut(auth);
         sessionStorage.clear();
         resolve(null);
         return;
       }
+
+      const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || '0');
+      if (!last || Date.now() - last > INACTIVITY_TIME) {
+        signOut(auth);
+        sessionStorage.clear();
+        localStorage.removeItem(SESSION_ID_KEY);
+        localStorage.removeItem(LAST_ACTIVITY_KEY);
+        resolve(null);
+        return;
+      }
+
       resolve(user);
     });
   });

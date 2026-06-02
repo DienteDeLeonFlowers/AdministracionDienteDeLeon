@@ -14,13 +14,9 @@ let pageCache = {};
 let currentPage = 1;
 const PAGE_SIZE = 10;
 const CACHE_TTL = 1 * 60 * 1000;
-let inactivityTimeout;
 
-const itemImg = document.getElementById('itemImg');
-const imagePreview = document.getElementById('imagePreview');
-const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-const categoryDropdown = document.getElementById('categoryDropdown');
-const filterDropdown = document.getElementById('filterDropdown');
+let lastWriteTime = 0;
+let inactivityChecker;
 
 function showToast(message, type = 'success') {
   const existing = document.querySelector('.toast-notification');
@@ -38,32 +34,33 @@ function showToast(message, type = 'success') {
 }
 
 function resetInactivityTimer() {
-  localStorage.setItem(LAST_ACTIVITY_KEY, Date.now().toString());
-  startTimer();
-}
-
-function startTimer() {
-  clearTimeout(inactivityTimeout);
-  inactivityTimeout = setTimeout(async () => {
-    await logout();
-    window.location.replace('index.html?error=auth_required');
-  }, INACTIVITY_TIME);
-}
-
-window.addEventListener('storage', (e) => {
-  if (e.key === LAST_ACTIVITY_KEY && e.newValue) {
-    startTimer();
+  const now = Date.now();
+  if (now - lastWriteTime > 1000) {
+    localStorage.setItem(LAST_ACTIVITY_KEY, now.toString());
+    lastWriteTime = now;
   }
-});
+}
+
+function startInactivityChecker() {
+  clearInterval(inactivityChecker);
+  inactivityChecker = setInterval(async () => {
+    const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || '0');
+    if (last && Date.now() - last > INACTIVITY_TIME) {
+      clearInterval(inactivityChecker);
+      await logout();
+      window.location.replace('index.html?error=auth_required');
+    }
+  }, 2000);
+}
 
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible') {
     const last = Number(localStorage.getItem(LAST_ACTIVITY_KEY) || '0');
-    if (!last || Date.now() - last > INACTIVITY_TIME) {
+    if (last && Date.now() - last > INACTIVITY_TIME) {
       await logout();
       window.location.replace('index.html?error=auth_required');
     } else {
-      startTimer();
+      resetInactivityTimer();
     }
   }
 });
@@ -596,6 +593,7 @@ document.querySelectorAll('.table-responsive').forEach(el => {
 
 protectRoute(false, () => {
   resetInactivityTimer();
+  startInactivityChecker();
   loadCategories();
   loadOccasions();
   fetchPage(1);

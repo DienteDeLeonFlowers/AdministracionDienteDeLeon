@@ -190,6 +190,7 @@ body.loading {
 
 .content-panel {
   flex: 1;
+  min-width: 0; /* CORRECCIÓN PARA EVITAR QUE SE ROMPA EN ESCRITORIO AL HACER CHICA LA VENTANA */
   height: 100%;
   padding: 2.5rem 3rem;
   overflow-y: auto;
@@ -1092,7 +1093,7 @@ th {
     border-radius: 40px;
     position: relative;
     user-select: none;
-    --num-buttons: 4;
+    --num-buttons: 6; /* CORRECCIÓN PARA LA ANIMACIÓN (ERAN 4) */
   }
   .nav-indicator {
     display: block;
@@ -1161,6 +1162,7 @@ th {
   .content-panel {
     margin-left: 0;
     padding: 1.5rem 1rem;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); /* CORRECCIÓN PARA MÓVIL IOS/ANDROID */
     overflow-y: auto;
     overflow-x: hidden;
     height: calc(100vh - 120px);
@@ -1243,4 +1245,107 @@ th {
   .dropdown-icon-left {
     left: 12px;
   }
+}
+
+
+
+
+
+
+
+.tipo-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tipo-imagen {
+  background: rgba(0, 122, 255, 0.08);
+  color: #0066cc;
+  border: 1px solid rgba(0, 122, 255, 0.2);
+}
+
+.tipo-color {
+  background: rgba(197, 155, 39, 0.1);
+  color: var(--sand-gold);
+  border: 1px solid rgba(197, 155, 39, 0.2);
+}
+
+.btn-options {
+  color: #007aff;
+  background: rgba(0, 122, 255, 0.08);
+}
+
+.btn-options:hover {
+  background: #007aff;
+  color: white;
+}
+
+.color-dot {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid rgba(20, 36, 23, 0.12);
+  flex-shrink: 0;
+}
+
+.options-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.options-panel-header h2 {
+  color: var(--green-corporate);
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid rgba(20, 36, 23, 0.15);
+  border-radius: 30px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--green-corporate);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-back:hover {
+  background: rgba(20, 36, 23, 0.05);
+  border-color: rgba(20, 36, 23, 0.25);
+}
+
+@media (max-width: 860px) {
+  .options-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+}
+
+@keyframes skeleton-loading {
+  0% { background-color: #f3f4f6; }
+  50% { background-color: #e5e7eb; }
+  100% { background-color: #f3f4f6; }
+}
+
+.td-img {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 6px;
+  animation: skeleton-loading 1.5s infinite ease-in-out;
+  display: block;
 }

@@ -10,7 +10,7 @@
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="img/icon_app.jpg">
   <meta name="apple-mobile-web-app-title" content="Admin DL">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="css/dashboard.css">
@@ -48,6 +48,12 @@
         </button>
         <button class="menu-btn" data-target="panel-occasions">
           <i class="fa-solid fa-calendar-check"></i> <span>Fechas Especiales</span>
+        </button>
+        <button class="menu-btn" data-target="panel-custom">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Crea tu Ramo</span>
+        </button>
+        <button class="menu-btn" data-target="panel-banner">
+          <i class="fa-solid fa-image"></i> <span>Banner Principal</span>
         </button>
       </nav>
 
@@ -176,6 +182,135 @@
                 <tr><th>Nombre de la Ocasión</th><th>Estatus</th><th>Acciones</th></tr>
               </thead>
               <tbody id="occasionsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-custom" class="crud-section">
+        <div class="dashboard-card mb-2">
+          <h2>Gestionar Secciones — Crea tu Ramo</h2>
+          <form id="sectionForm">
+            <div class="input-group">
+              <i class="fa-solid fa-wand-magic-sparkles input-icon"></i>
+              <input type="text" id="newSectionName" placeholder="Ej. Flores, Color de papel..." required>
+            </div>
+            <div class="input-group" style="margin-top:0">
+              <select id="newSectionTipo" style="width:100%;padding:13px 16px 13px 44px;background:var(--input-bg);border:1px solid rgba(20,36,23,0.12);border-radius:8px;color:var(--green-corporate);font-size:16px;font-weight:500;outline:none;">
+                <option value="imagen">Imagen (ej. flores, follaje)</option>
+                <option value="color">Color (ej. papel, listón)</option>
+              </select>
+              <i class="fa-solid fa-palette input-icon"></i>
+            </div>
+            <button type="submit" class="btn-primary">Agregar Sección</button>
+          </form>
+        </div>
+        <div class="management-card">
+          <h3>Secciones Activas</h3>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr><th>Nombre</th><th>Tipo</th><th>Estatus</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="sectionsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-options" class="crud-section">
+        <div class="options-panel-header">
+          <button id="btnBackToSections" class="btn-back">
+            <i class="fa-solid fa-arrow-left"></i> Volver a Secciones
+          </button>
+          <h2 id="optionsSectionTitle">Opciones</h2>
+        </div>
+
+        <div class="dashboard-card mb-2">
+          <h2>Agregar Opción</h2>
+          <form id="optionForm">
+            <div class="input-group">
+              <i class="fa-solid fa-tag input-icon"></i>
+              <input type="text" id="optionNombre" placeholder="Nombre de la opción" required>
+            </div>
+            <div class="input-group">
+              <i class="fa-solid fa-dollar-sign input-icon"></i>
+              <input type="number" id="optionPrecio" placeholder="Precio" min="0" step="0.01" required>
+            </div>
+
+            <div id="optionImageGroup" style="display:none;flex-direction:column;gap:0.8rem;">
+              <div class="file-input-wrapper">
+                <label for="optionImg" class="file-label">
+                  <i class="fa-solid fa-cloud-arrow-up"></i>
+                  <span>Seleccionar imagen</span>
+                </label>
+                <input type="file" id="optionImg" accept="image/*">
+              </div>
+              <div class="image-preview-container" id="optionImgPreviewContainer">
+                <button type="button" class="btn-remove-image" id="btnRemoveOptionImg"><i class="fa-solid fa-xmark"></i></button>
+                <img src="" alt="Vista previa" id="optionImgPreview">
+              </div>
+            </div>
+
+            <div id="optionColorGroup" style="display:none;flex-direction:column;gap:0.5rem;">
+              <label style="font-size:0.85rem;font-weight:600;color:var(--green-corporate);opacity:0.7;">Color:</label>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <input type="color" id="optionColor" value="#ff6b9d" style="width:60px;height:48px;border:1px solid rgba(20,36,23,0.12);border-radius:8px;padding:2px;cursor:pointer;background:var(--input-bg);">
+                <span style="font-size:0.85rem;color:var(--green-corporate);opacity:0.6;">Selecciona el color representativo</span>
+              </div>
+            </div>
+
+            <button type="submit" id="optionSubmitBtn" class="btn-primary">Agregar Opción</button>
+          </form>
+        </div>
+
+        <div class="management-card">
+          <h3>Opciones Registradas</h3>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr><th>Vista</th><th>Nombre</th><th>Precio</th><th>Estatus</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="optionsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="panel-banner" class="crud-section">
+        <div class="dashboard-card">
+          <h2>Banner Principal</h2>
+          <form id="bannerForm">
+            <div class="file-input-wrapper">
+              <label for="bannerImg" class="file-label">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Seleccionar imagen del banner</span>
+              </label>
+              <input type="file" id="bannerImg" accept="image/*" required>
+              <div id="bannerFilePreviewText" class="file-preview-text">Ningún archivo seleccionado</div>
+            </div>
+            <div class="image-preview-container" id="bannerPreviewContainer">
+              <button type="button" class="btn-remove-image" id="btnRemoveBanner">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+              <img src="" alt="Vista previa banner" id="bannerPreview">
+            </div>
+            <button type="submit" id="bannerSubmitBtn" class="btn-primary">Subir Banner</button>
+            <div id="bannerStatus"></div>
+          </form>
+        </div>
+
+        <div class="management-card">
+          <h3>Banners Guardados</h3>
+          <p style="font-size:0.82rem;color:var(--green-corporate);opacity:0.55;margin-bottom:1.2rem;">
+            Solo puede haber <strong>1 banner activo</strong> a la vez. Actívalo desde el botón correspondiente.
+          </p>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr><th>Vista previa</th><th>Estatus</th><th>Acciones</th></tr>
+              </thead>
+              <tbody id="bannerTableBody"></tbody>
             </table>
           </div>
         </div>

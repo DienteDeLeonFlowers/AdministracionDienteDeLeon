@@ -3,7 +3,7 @@ const crudSections = document.querySelectorAll('.crud-section');
 const navIndicator = document.querySelector('.nav-indicator');
 const sidebarMenu = document.querySelector('.sidebar-menu');
 
-const panelsOrder = ['panel-upload', 'panel-view-catalog', 'panel-categories', 'panel-occasions'];
+const panelsOrder = Array.from(menuButtons).map(btn => btn.getAttribute('data-target'));
 
 function getActivePanelIndex() {
   const active = Array.from(crudSections).find(s => s.classList.contains('active'));
@@ -23,6 +23,7 @@ function setActiveBtn(index) {
 function switchPanel(panelId, animate = true) {
   const index = panelsOrder.indexOf(panelId);
   if (index === -1) return;
+  
   setActiveBtn(index);
   setIndicator(index, animate);
   crudSections.forEach(s => s.classList.toggle('active', s.id === panelId));
@@ -66,10 +67,12 @@ if (sidebarMenu && navIndicator) {
     const dx = e.clientX - startX;
     if (!dragging && Math.abs(dx) < 6) return;
     if (!dragging) { dragging = true; navIndicator.style.transition = 'none'; }
+    
     const menuW = sidebarMenu.offsetWidth - 8;
-    const stepPx = menuW / panelsOrder.length;
+    const stepPx = menuW / panelsOrder.length; 
     const raw = startIndex + dx / stepPx;
     const clamped = Math.min(Math.max(raw, 0), panelsOrder.length - 1);
+    
     sidebarMenu.style.setProperty('--indicator-index', clamped);
     const snapped = Math.round(clamped);
     if (snapped !== Math.round(liveIndex)) setActiveBtn(snapped);
@@ -102,6 +105,7 @@ window.addEventListener('touchend', e => {
   if (window.innerWidth > 860 || swipeOnNav) return;
   const dx = swipeStartX - e.changedTouches[0].clientX;
   const dy = swipeStartY - e.changedTouches[0].clientY;
+  
   if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
     const cur = getActivePanelIndex();
     if (dx > 0 && cur < panelsOrder.length - 1) switchPanel(panelsOrder[cur + 1]);

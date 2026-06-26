@@ -7,16 +7,25 @@ import { protectRoute } from './services/authGuard.js';
 import { addCategory, updateCategory, toggleCategoryStatus, deleteCategory } from './services/categoryService.js';
 import { addOccasion, updateOccasion, toggleOccasionStatus, deleteOccasion } from './services/occasionService.js';
 import { addProduct, updateProduct, deleteProduct } from './services/productService.js';
+import { addSection, updateSection, toggleSectionStatus, deleteSection, getSections } from './services/customSectionService.js';
+import { addOption, updateOption, toggleOptionStatus, deleteOption, getOptionsBySection } from './services/customOptionService.js';
+import { getBanners, addBanner, activateBanner, deleteBanner } from './services/bannerService.js';
 
 let allProducts = [];
+let allBanners = [];
 let pageSnapshots = [null];
 let pageCache = {};
 let currentPage = 1;
 const PAGE_SIZE = 10;
 const CACHE_TTL = 60 * 60 * 1000;
-
 let lastWriteTime = 0;
 let inactivityChecker;
+
+const itemImg = document.getElementById('itemImg');
+const imagePreview = document.getElementById('imagePreview');
+const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+const categoryDropdown = document.getElementById('categoryDropdown');
+const filterDropdown = document.getElementById('filterDropdown');
 
 function showToast(message, type = 'success') {
   const existing = document.querySelector('.toast-notification');
@@ -138,6 +147,122 @@ async function loadOccasions(forceRefresh = false) {
   buildOccasionCheckboxes(data);
   updateFilterSelects();
 }
+
+async function loadBanners() {
+  const tbody = document.getElementById('bannerTableBody');
+  if (!tbody) return;
+  try {
+    allBanners = await getBanners();
+    if (allBanners.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:2rem;opacity:0.5;">Sin banners registrados</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = allBanners.map(b => `
+      <tr>
+        <td><img src="${b.imageUrl}" alt="Banner" loading="lazy" style="width: 150px; height: auto; border-radius: 6px;"></td>
+        <td>
+          <span class="status-badge ${b.activo ? 'active' : 'inactive'}" style="cursor:pointer;" onclick="toggleBannerStatusUI('${b.id}')">
+            ${b.activo ? 'Activo' : 'Inactivo'}
+          </span>
+        </td>
+        <td class="actions-cell">
+          <button class="btn-action btn-delete" onclick="deleteBannerUI('${b.id}', '${b.imageUrl}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+window.toggleBannerStatusUI = async (id) => {
+  try {
+    await activateBanner(id, allBanners);
+    await loadBanners();
+    showToast('Banner activado correctamente.');
+  } catch (err) {
+    showToast('Error al actualizar el banner.', 'error');
+  }
+};
+
+window.deleteBannerUI = (id, imageUrl) => {
+  openModal('Eliminar Banner', '<p>¿Confirmas que deseas eliminar este banner?</p>', async () => {
+    try {
+      await deleteBanner(id, imageUrl);
+      await loadBanners();
+      showToast('Banner eliminado correctamente.');
+    } catch (err) {
+      showToast('Error al eliminar el banner.', 'error');
+    }
+  });
+  document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
+};
+
+const bannerImgInput = document.getElementById('bannerImg');
+const bannerPreview = document.getElementById('bannerPreview');
+const bannerPreviewContainer = document.getElementById('bannerPreviewContainer');
+const bannerFilePreviewText = document.getElementById('bannerFilePreviewText');
+
+if (bannerImgInput) {
+  bannerImgInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        bannerPreview.src = e.target.result;
+        bannerPreviewContainer.classList.add('active');
+        if (bannerFilePreviewText) bannerFilePreviewText.innerText = file.name;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+document.getElementById('btnRemoveBanner')?.addEventListener('click', () => {
+  if (bannerImgInput) bannerImgInput.value = '';
+  if (bannerPreview) bannerPreview.src = '';
+  if (bannerPreviewContainer) bannerPreviewContainer.classList.remove('active');
+  if (bannerFilePreviewText) bannerFilePreviewText.innerText = 'Ningún archivo seleccionado';
+});
+
+document.getElementById('bannerForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!bannerImgInput.files[0]) {
+    showToast('Selecciona una imagen para el banner.', 'error');
+    return;
+  }
+  const btn = document.getElementById('bannerSubmitBtn');
+  const status = document.getElementById('bannerStatus');
+  btn.disabled = true;
+  status.style.color = 'inherit';
+  status.innerText = 'Subiendo banner...';
+
+  try {
+    const webpBlob = await processToWebp(bannerImgInput.files[0]);
+    const refImg = ref(storage, `banners/${Date.now()}.webp`);
+    const uploadResult = await uploadBytes(refImg, webpBlob);
+    const url = await getDownloadURL(uploadResult.ref);
+
+    await addBanner({ imageUrl: url, activo: false });
+
+    status.innerText = '¡Banner subido con éxito!';
+    status.style.color = '#00a84d';
+    setTimeout(() => { status.innerText = ''; }, 3000);
+
+    e.target.reset();
+    if (bannerFilePreviewText) bannerFilePreviewText.innerText = 'Ningún archivo seleccionado';
+    if (bannerPreviewContainer) bannerPreviewContainer.classList.remove('active');
+
+    await loadBanners();
+  } catch (err) {
+    status.innerText = 'Error: ' + err.message;
+    status.style.color = '#ff3b30';
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 function buildCategoryDropdown(data) {
   const menu = document.getElementById('dropdownMenuCategories');
@@ -320,7 +445,7 @@ function renderTable(containerId, data, colName) {
     <tr>
       <td>${doc.nombre}</td>
       <td>
-        <span class="status-badge ${doc.activo ? 'active' : 'inactive'}" onclick="toggleStatus('${colName}', '${doc.id}', ${doc.activo})">
+        <span class="status-badge ${doc.activo ? 'active' : 'inactive'}" onclick="toggleStatus(event, '${colName}', '${doc.id}', ${doc.activo})">
           ${doc.activo ? 'Activa' : 'Inactiva'}
         </span>
       </td>
@@ -336,13 +461,30 @@ function renderTable(containerId, data, colName) {
   `).join('');
 }
 
-window.toggleStatus = async (col, id, stat) => {
+window.toggleStatus = async (event, col, id, currentStat) => {
+  const badge = event.currentTarget;
+  const newState = !currentStat;
+
+  badge.classList.toggle('active', newState);
+  badge.classList.toggle('inactive', !newState);
+  badge.innerText = newState ? 'Activa' : 'Inactiva';
+  badge.setAttribute('onclick', `toggleStatus(event, '${col}', '${id}', ${newState})`);
+
   try {
-    col === 'categorias' ? await toggleCategoryStatus(id, stat) : await toggleOccasionStatus(id, stat);
-    clearCache(col === 'categorias' ? 'cats' : 'occs');
-    col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+    col === 'categorias' ? await toggleCategoryStatus(id, currentStat) : await toggleOccasionStatus(id, currentStat);
+    const cacheKey = col === 'categorias' ? 'cats' : 'occs';
+    let cachedData = getCached(cacheKey) || [];
+    const index = cachedData.findIndex(item => item.id === id);
+    if (index > -1) {
+      cachedData[index].activo = newState;
+      setCache(cacheKey, cachedData);
+    }
     showToast('Estatus actualizado correctamente.');
   } catch (err) {
+    badge.classList.toggle('active', currentStat);
+    badge.classList.toggle('inactive', !currentStat);
+    badge.innerText = currentStat ? 'Activa' : 'Inactiva';
+    badge.setAttribute('onclick', `toggleStatus(event, '${col}', '${id}', ${currentStat})`);
     showToast('Error al actualizar el estatus.', 'error');
   }
 };
@@ -418,6 +560,342 @@ window.removeProduct = async (id, imageUrl) => {
   });
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
+
+async function loadCustomSections(forceRefresh = false) {
+  if (!forceRefresh) {
+    const cached = getCached('custom_sections');
+    if (cached) { renderSectionsTable(cached); return; }
+  }
+  const data = await getSections();
+  setCache('custom_sections', data);
+  renderSectionsTable(data);
+}
+
+function renderSectionsTable(sections) {
+  const tbody = document.getElementById('sectionsTableBody');
+  if (!tbody) return;
+  if (sections.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;opacity:0.5;padding:2rem;">Sin secciones registradas</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = sections.map(s => `
+    <tr>
+      <td>${s.nombre}</td>
+      <td><span class="tipo-badge tipo-${s.tipo}">${s.tipo === 'imagen' ? 'Imagen' : 'Color'}</span></td>
+      <td>
+        <span class="status-badge ${s.activo ? 'active' : 'inactive'}" onclick="toggleSectionStatusUI(event, '${s.id}', ${s.activo})">
+          ${s.activo ? 'Activa' : 'Inactiva'}
+        </span>
+      </td>
+      <td class="actions-cell">
+        <button class="btn-action btn-options" onclick="openOptionsPanel('${s.id}', \`${s.nombre}\`, '${s.tipo}')">
+          <i class="fa-solid fa-list"></i>
+        </button>
+        <button class="btn-action btn-edit" onclick="editSectionUI('${s.id}', \`${s.nombre}\`, '${s.tipo}')">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="btn-action btn-delete" onclick="deleteSectionUI('${s.id}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+window.toggleSectionStatusUI = async (event, id, currentStat) => {
+  const badge = event.currentTarget;
+  const newState = !currentStat;
+
+  badge.classList.toggle('active', newState);
+  badge.classList.toggle('inactive', !newState);
+  badge.innerText = newState ? 'Activa' : 'Inactiva';
+  badge.setAttribute('onclick', `toggleSectionStatusUI(event, '${id}', ${newState})`);
+
+  try {
+    await toggleSectionStatus(id, currentStat);
+    let cachedData = getCached('custom_sections') || [];
+    const index = cachedData.findIndex(item => item.id === id);
+    if (index > -1) {
+      cachedData[index].activo = newState;
+      setCache('custom_sections', cachedData);
+    }
+    showToast('Estatus actualizado correctamente.');
+  } catch (err) {
+    badge.classList.toggle('active', currentStat);
+    badge.classList.toggle('inactive', !currentStat);
+    badge.innerText = currentStat ? 'Activa' : 'Inactiva';
+    badge.setAttribute('onclick', `toggleSectionStatusUI(event, '${id}', ${currentStat})`);
+    showToast('Error al actualizar el estatus.', 'error');
+  }
+};
+
+window.editSectionUI = (id, nombre, tipo) => {
+  openModal('Editar Sección',
+    `${inputField('modalNombre', nombre, 'Nombre de la sección')}
+     <div class="input-group" style="margin-top:1rem">
+       <label style="font-size:0.85rem;font-weight:600;color:var(--green-corporate);opacity:0.7;margin-bottom:6px;display:block;">Tipo de opción</label>
+       <select id="modalTipo" style="width:100%;padding:13px 16px;background:var(--input-bg);border:1px solid rgba(20,36,23,0.12);border-radius:8px;color:var(--green-corporate);font-size:16px;font-weight:500;outline:none;">
+         <option value="imagen" ${tipo === 'imagen' ? 'selected' : ''}>Imagen (ej. flores)</option>
+         <option value="color" ${tipo === 'color' ? 'selected' : ''}>Color (ej. papel, listón)</option>
+       </select>
+     </div>`,
+    async () => {
+      const val = document.getElementById('modalNombre').value.trim();
+      const nuevoTipo = document.getElementById('modalTipo').value;
+      if (!val) return;
+      try {
+        await updateSection(id, { nombre: val, tipo: nuevoTipo });
+        clearCache('custom_sections');
+        loadCustomSections(true);
+        showToast('Sección actualizada correctamente.');
+      } catch (err) {
+        showToast('Error al actualizar la sección.', 'error');
+      }
+    }
+  );
+};
+
+window.deleteSectionUI = (id) => {
+  openModal('Eliminar Sección', '<p>¿Confirmas que deseas eliminar esta sección y todas sus opciones?</p>', async () => {
+    try {
+      await deleteSection(id);
+      clearCache('custom_sections');
+      loadCustomSections(true);
+      showToast('Sección eliminada correctamente.');
+    } catch (err) {
+      showToast('Error al eliminar la sección.', 'error');
+    }
+  });
+  document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
+};
+
+let currentSectionId = null;
+let currentSectionTipo = null;
+let optionImgFile = null;
+
+window.openOptionsPanel = async (sectionId, sectionNombre, tipo) => {
+  currentSectionId = sectionId;
+  currentSectionTipo = tipo;
+  optionImgFile = null;
+
+  const panel = document.getElementById('panel-options');
+  const title = document.getElementById('optionsSectionTitle');
+  const formImg = document.getElementById('optionImageGroup');
+  const formColor = document.getElementById('optionColorGroup');
+
+  title.textContent = `Opciones — ${sectionNombre}`;
+  formImg.style.display = tipo === 'imagen' ? 'flex' : 'none';
+  formColor.style.display = tipo === 'color' ? 'flex' : 'none';
+
+  document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.crud-section').forEach(s => s.classList.remove('active'));
+  panel.classList.add('active');
+
+  await loadOptions(sectionId, tipo);
+};
+
+async function loadOptions(sectionId, tipo) {
+  const tbody = document.getElementById('optionsTableBody');
+  tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;opacity:0.5;">Cargando...</td></tr>`;
+  const data = await getOptionsBySection(sectionId);
+  if (data.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;opacity:0.5;">Sin opciones registradas</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(o => `
+    <tr>
+      <td>
+        ${tipo === 'imagen'
+          ? `<img src="${o.imageUrl || ''}" class="td-img" alt="${o.nombre}" loading="lazy">`
+          : `<span class="color-dot" style="background:${o.color || '#ccc'}"></span>`
+        }
+      </td>
+      <td>${o.nombre}</td>
+      <td>$${Number(o.precio).toFixed(2)}</td>
+      <td>
+        <span class="status-badge ${o.activo ? 'active' : 'inactive'}" onclick="toggleOptionStatusUI(event, '${o.id}', ${o.activo})">
+          ${o.activo ? 'Activa' : 'Inactiva'}
+        </span>
+      </td>
+      <td class="actions-cell">
+        <button class="btn-action btn-edit" onclick="editOptionUI('${o.id}', \`${o.nombre}\`, ${o.precio}, '${o.imageUrl || ''}', '${o.color || ''}')">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="btn-action btn-delete" onclick="deleteOptionUI('${o.id}', '${o.imageUrl || ''}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+window.toggleOptionStatusUI = async (event, id, currentStat) => {
+  const badge = event.currentTarget;
+  const newState = !currentStat;
+
+  badge.classList.toggle('active', newState);
+  badge.classList.toggle('inactive', !newState);
+  badge.innerText = newState ? 'Activa' : 'Inactiva';
+  badge.setAttribute('onclick', `toggleOptionStatusUI(event, '${id}', ${newState})`);
+
+  try {
+    await toggleOptionStatus(id, currentStat);
+    showToast('Estatus actualizado correctamente.');
+  } catch (err) {
+    badge.classList.toggle('active', currentStat);
+    badge.classList.toggle('inactive', !currentStat);
+    badge.innerText = currentStat ? 'Activa' : 'Inactiva';
+    badge.setAttribute('onclick', `toggleOptionStatusUI(event, '${id}', ${currentStat})`);
+    showToast('Error al actualizar el estatus.', 'error');
+  }
+};
+
+window.deleteOptionUI = (id, imageUrl) => {
+  openModal('Eliminar Opción', '<p>¿Confirmas que deseas eliminar esta opción?</p>', async () => {
+    try {
+      await deleteOption(id, imageUrl || null);
+      await loadOptions(currentSectionId, currentSectionTipo);
+      showToast('Opción eliminada correctamente.');
+    } catch (err) {
+      showToast('Error al eliminar la opción.', 'error');
+    }
+  });
+  document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
+};
+
+window.editOptionUI = (id, nombre, precio, imageUrl, color) => {
+  const fields = `
+    ${inputField('modalNombre', nombre, 'Nombre')}
+    <div class="input-group" style="margin-top:1rem">
+      <i class="fa-solid fa-dollar-sign input-icon"></i>
+      <input type="number" id="modalPrecio" value="${precio}" placeholder="Precio" min="0" step="0.01" required style="padding-left:44px;">
+    </div>
+    ${currentSectionTipo === 'color'
+      ? `<div class="input-group" style="margin-top:1rem;align-items:center;gap:12px;">
+           <label style="font-size:0.85rem;font-weight:600;color:var(--green-corporate);opacity:0.7;white-space:nowrap;">Color:</label>
+           <input type="color" id="modalColor" value="${color || '#ffffff'}" style="width:60px;height:40px;border:1px solid rgba(20,36,23,0.12);border-radius:8px;padding:2px;cursor:pointer;background:var(--input-bg);">
+         </div>`
+      : `<div style="margin-top:1rem;font-size:0.82rem;color:var(--green-corporate);opacity:0.6;">Imagen actual: ${imageUrl ? '<a href="' + imageUrl + '" target="_blank">ver</a>' : 'ninguna'}</div>
+         <div class="input-group" style="margin-top:0.5rem">
+           <input type="file" id="modalImg" accept="image/*" style="padding:10px 16px;">
+         </div>`
+    }
+  `;
+  openModal('Editar Opción', fields, async () => {
+    const nuevoNombre = document.getElementById('modalNombre').value.trim();
+    const nuevoPrecio = parseFloat(document.getElementById('modalPrecio').value);
+    if (!nuevoNombre || isNaN(nuevoPrecio)) return;
+    try {
+      const updateData = { nombre: nuevoNombre, precio: nuevoPrecio };
+      if (currentSectionTipo === 'color') {
+        updateData.color = document.getElementById('modalColor').value;
+      } else {
+        const fileInput = document.getElementById('modalImg');
+        if (fileInput && fileInput.files[0]) {
+          const webpBlob = await processToWebp(fileInput.files[0]);
+          const refImg = ref(storage, `custom_options/${Date.now()}.webp`);
+          const uploaded = await uploadBytes(refImg, webpBlob);
+          updateData.imageUrl = await getDownloadURL(uploaded.ref);
+          if (imageUrl) {
+            try { await deleteObject(ref(storage, imageUrl)); } catch (_) {}
+          }
+        }
+      }
+      await updateOption(id, updateData);
+      await loadOptions(currentSectionId, currentSectionTipo);
+      showToast('Opción actualizada correctamente.');
+    } catch (err) {
+      showToast('Error al actualizar la opción.', 'error');
+    }
+  });
+};
+
+const optionImgInput = document.getElementById('optionImg');
+const optionImgPreview = document.getElementById('optionImgPreview');
+const optionImgPreviewContainer = document.getElementById('optionImgPreviewContainer');
+
+if (optionImgInput) {
+  optionImgInput.addEventListener('change', function () {
+    const file = this.files[0];
+    if (file) {
+      optionImgFile = file;
+      const reader = new FileReader();
+      reader.onload = e => {
+        optionImgPreview.src = e.target.result;
+        optionImgPreviewContainer.classList.add('active');
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+document.getElementById('btnRemoveOptionImg')?.addEventListener('click', () => {
+  if (optionImgInput) optionImgInput.value = '';
+  if (optionImgPreview) optionImgPreview.src = '';
+  if (optionImgPreviewContainer) optionImgPreviewContainer.classList.remove('active');
+  optionImgFile = null;
+});
+
+document.getElementById('optionForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const nombre = document.getElementById('optionNombre').value.trim();
+  const precio = parseFloat(document.getElementById('optionPrecio').value);
+  if (!nombre || isNaN(precio)) return;
+
+  const btn = document.getElementById('optionSubmitBtn');
+  btn.disabled = true;
+
+  try {
+    const data = { seccionId: currentSectionId, nombre, precio };
+
+    if (currentSectionTipo === 'imagen') {
+      if (!optionImgFile) { showToast('Selecciona una imagen.', 'error'); btn.disabled = false; return; }
+      const webpBlob = await processToWebp(optionImgFile);
+      const refImg = ref(storage, `custom_options/${Date.now()}.webp`);
+      const uploaded = await uploadBytes(refImg, webpBlob);
+      data.imageUrl = await getDownloadURL(uploaded.ref);
+    } else {
+      data.color = document.getElementById('optionColor').value;
+    }
+
+    await addOption(data);
+    await loadOptions(currentSectionId, currentSectionTipo);
+    e.target.reset();
+    if (optionImgPreviewContainer) optionImgPreviewContainer.classList.remove('active');
+    optionImgFile = null;
+    showToast('Opción agregada correctamente.');
+  } catch (err) {
+    showToast(err.message || 'Error al agregar la opción.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('sectionForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const nombre = document.getElementById('newSectionName').value.trim();
+  const tipo = document.getElementById('newSectionTipo').value;
+  if (!nombre) return;
+  try {
+    await addSection({ nombre, tipo });
+    clearCache('custom_sections');
+    loadCustomSections(true);
+    e.target.reset();
+    showToast('Sección agregada correctamente.');
+  } catch (err) {
+    showToast('Error al agregar la sección.', 'error');
+  }
+});
+
+document.getElementById('btnBackToSections')?.addEventListener('click', () => {
+  document.querySelectorAll('.crud-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('panel-custom').classList.add('active');
+  document.querySelectorAll('.menu-btn').forEach(b => {
+    if (b.getAttribute('data-target') === 'panel-custom') b.classList.add('active');
+  });
+  currentSectionId = null;
+  currentSectionTipo = null;
+});
 
 document.querySelector('#categoryDropdown .dropdown-trigger')?.addEventListener('click', () => {
   categoryDropdown.classList.toggle('active');
@@ -519,12 +997,10 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
     btn.disabled = true;
     status.style.color = 'inherit';
     status.innerText = 'Procesando...';
-
     const webpBlob = await processToWebp(itemImg.files[0]);
     const refImg = ref(storage, `catalog/${Date.now()}.webp`);
     const uploadResult = await uploadBytes(refImg, webpBlob);
     const url = await getDownloadURL(uploadResult.ref);
-
     await addProduct({
       nombre: itemName.value,
       descripcion: itemDesc.value,
@@ -533,11 +1009,9 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
       ocasiones: selectedOccasion?.value || null,
       fecha: new Date().toISOString()
     });
-
     status.innerText = '¡Arreglo subido con éxito!';
     status.style.color = '#00a84d';
     setTimeout(() => { status.innerText = ''; }, 3000);
-
     e.target.reset();
     document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
     imagePreviewContainer.classList.remove('active');
@@ -596,5 +1070,7 @@ protectRoute(false, () => {
   startInactivityChecker();
   loadCategories();
   loadOccasions();
+  loadCustomSections();
+  loadBanners();
   fetchPage(1);
 });

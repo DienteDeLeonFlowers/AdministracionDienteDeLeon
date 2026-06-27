@@ -1133,11 +1133,15 @@ th {
   .menu-btn span {
     display: none;
   }
-  .menu-btn i {
-    font-size: 1.25rem !important;
-    color: var(--green-corporate);
-    opacity: 0.35;
-    transition: color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  .menu-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 10px;
+    z-index: 10;
+    position: relative;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
   .menu-btn.active i {
     color: var(--green-neon) !important;

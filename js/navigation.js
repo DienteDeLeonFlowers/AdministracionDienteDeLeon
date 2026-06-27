@@ -53,39 +53,50 @@ if (sidebarMenu && navIndicator) {
   let pointerId = null;
 
   sidebarMenu.addEventListener('pointerdown', e => {
-    if (window.innerWidth > 860) return;
+    if (window.innerWidth > 1024) return;
     dragging = false;
     startX = e.clientX;
     startIndex = getActivePanelIndex();
     liveIndex = startIndex;
     pointerId = e.pointerId;
-    sidebarMenu.setPointerCapture(e.pointerId);
   });
 
   sidebarMenu.addEventListener('pointermove', e => {
-    if (window.innerWidth > 860 || e.pointerId !== pointerId) return;
+    if (window.innerWidth > 1024 || e.pointerId !== pointerId) return;
     const dx = e.clientX - startX;
-    if (!dragging && Math.abs(dx) < 6) return;
-    if (!dragging) { dragging = true; navIndicator.style.transition = 'none'; }
     
-    const menuW = sidebarMenu.offsetWidth - 8;
-    const stepPx = menuW / panelsOrder.length; 
-    const raw = startIndex + dx / stepPx;
-    const clamped = Math.min(Math.max(raw, 0), panelsOrder.length - 1);
+    if (!dragging && Math.abs(dx) > 6) { 
+      dragging = true; 
+      sidebarMenu.setPointerCapture(e.pointerId);
+      navIndicator.style.transition = 'none'; 
+    }
     
-    sidebarMenu.style.setProperty('--indicator-index', clamped);
-    const snapped = Math.round(clamped);
-    if (snapped !== Math.round(liveIndex)) setActiveBtn(snapped);
-    liveIndex = clamped;
+    if (dragging) {
+      const menuW = sidebarMenu.offsetWidth - 8;
+      const stepPx = menuW / panelsOrder.length; 
+      const raw = startIndex + dx / stepPx;
+      const clamped = Math.min(Math.max(raw, 0), panelsOrder.length - 1);
+      
+      sidebarMenu.style.setProperty('--indicator-index', clamped);
+      const snapped = Math.round(clamped);
+      if (snapped !== Math.round(liveIndex)) setActiveBtn(snapped);
+      liveIndex = clamped;
+    }
   });
 
-  function endDrag() {
-    if (!dragging) return;
+  function endDrag(e) {
+    if (!dragging) {
+      pointerId = null;
+      return;
+    }
     dragging = false;
+    if (pointerId) sidebarMenu.releasePointerCapture(pointerId);
     pointerId = null;
+    
     const finalIdx = Math.min(Math.max(Math.round(liveIndex), 0), panelsOrder.length - 1);
     switchPanel(panelsOrder[finalIdx], true);
   }
+  
   sidebarMenu.addEventListener('pointerup', endDrag);
   sidebarMenu.addEventListener('pointercancel', endDrag);
 }
@@ -95,14 +106,14 @@ let swipeStartY = 0;
 let swipeOnNav = false;
 
 window.addEventListener('touchstart', e => {
-  if (window.innerWidth > 860) return;
+  if (window.innerWidth > 1024) return;
   swipeStartX = e.touches[0].clientX;
   swipeStartY = e.touches[0].clientY;
   swipeOnNav = sidebarMenu?.contains(e.target) ?? false;
 }, { passive: true });
 
 window.addEventListener('touchend', e => {
-  if (window.innerWidth > 860 || swipeOnNav) return;
+  if (window.innerWidth > 1024 || swipeOnNav) return;
   const dx = swipeStartX - e.changedTouches[0].clientX;
   const dy = swipeStartY - e.changedTouches[0].clientY;
   

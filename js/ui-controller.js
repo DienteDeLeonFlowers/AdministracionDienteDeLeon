@@ -79,16 +79,14 @@ document.addEventListener('visibilitychange', async () => {
 });
 
 const contentPanel = document.querySelector('.content-panel');
-if (contentPanel) {
-  contentPanel.addEventListener('scroll', resetInactivityTimer, { passive: true });
-}
+if (contentPanel) contentPanel.addEventListener('scroll', resetInactivityTimer, { passive: true });
 
 function getCached(key) {
   try {
     const data = sessionStorage.getItem(key);
     const ts = sessionStorage.getItem(key + '_ts');
     if (data && ts && Date.now() - Number(ts) < CACHE_TTL) return JSON.parse(data);
-  } catch (_) { }
+  } catch (_) {}
   return null;
 }
 
@@ -96,12 +94,34 @@ function setCache(key, data) {
   try {
     sessionStorage.setItem(key, JSON.stringify(data));
     sessionStorage.setItem(key + '_ts', Date.now());
-  } catch (_) { }
+  } catch (_) {}
 }
 
 function clearCache(key) {
   sessionStorage.removeItem(key);
   sessionStorage.removeItem(key + '_ts');
+}
+
+function updateCacheItem(key, id, changes) {
+  const cached = getCached(key);
+  if (!cached) return;
+  const index = cached.findIndex(item => item.id === id);
+  if (index > -1) {
+    cached[index] = { ...cached[index], ...changes };
+    setCache(key, cached);
+  }
+}
+
+function addCacheItem(key, item) {
+  const cached = getCached(key);
+  if (!cached) return;
+  setCache(key, [...cached, item]);
+}
+
+function removeCacheItem(key, id) {
+  const cached = getCached(key);
+  if (!cached) return;
+  setCache(key, cached.filter(item => item.id !== id));
 }
 
 function getClasificacionNombre(catId, occId) {
@@ -112,15 +132,13 @@ function getClasificacionNombre(catId, occId) {
   return (categoria ? categoria.nombre : '') || (ocasion ? ocasion.nombre : '') || '—';
 }
 
-async function loadCategories(forceRefresh = false) {
-  if (!forceRefresh) {
-    const cached = getCached('cats');
-    if (cached) {
-      renderTable('categoriesTableBody', cached, 'categorias');
-      buildCategoryDropdown(cached);
-      updateFilterSelects();
-      return;
-    }
+async function loadCategories() {
+  const cached = getCached('cats');
+  if (cached) {
+    renderTable('categoriesTableBody', cached, 'categorias');
+    buildCategoryDropdown(cached);
+    updateFilterSelects();
+    return;
   }
   const snap = await getDocs(collection(db, 'categorias'));
   const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -130,15 +148,13 @@ async function loadCategories(forceRefresh = false) {
   updateFilterSelects();
 }
 
-async function loadOccasions(forceRefresh = false) {
-  if (!forceRefresh) {
-    const cached = getCached('occs');
-    if (cached) {
-      renderTable('occasionsTableBody', cached, 'ocasiones');
-      buildOccasionCheckboxes(cached);
-      updateFilterSelects();
-      return;
-    }
+async function loadOccasions() {
+  const cached = getCached('occs');
+  if (cached) {
+    renderTable('occasionsTableBody', cached, 'ocasiones');
+    buildOccasionCheckboxes(cached);
+    updateFilterSelects();
+    return;
   }
   const snap = await getDocs(collection(db, 'ocasiones'));
   const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -151,36 +167,51 @@ async function loadOccasions(forceRefresh = false) {
 async function loadBanners() {
   const tbody = document.getElementById('bannerTableBody');
   if (!tbody) return;
+  const cached = getCached('banners');
+  if (cached) {
+    allBanners = cached;
+    renderBannersTable(cached);
+    return;
+  }
   try {
     allBanners = await getBanners();
-    if (allBanners.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:2rem;opacity:0.5;">Sin banners registrados</td></tr>`;
-      return;
-    }
-    tbody.innerHTML = allBanners.map(b => `
-      <tr>
-        <td><img src="${b.imageUrl}" alt="Banner" loading="lazy" style="width: 150px; height: auto; border-radius: 6px;"></td>
-        <td>
-          <span class="status-badge ${b.activo ? 'active' : 'inactive'}" style="cursor:pointer;" onclick="toggleBannerStatusUI('${b.id}')">
-            ${b.activo ? 'Activo' : 'Inactivo'}
-          </span>
-        </td>
-        <td class="actions-cell">
-          <button class="btn-action btn-delete" onclick="deleteBannerUI('${b.id}', '${b.imageUrl}')">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </td>
-      </tr>
-    `).join('');
+    setCache('banners', allBanners);
+    renderBannersTable(allBanners);
   } catch (error) {
     console.error(error);
   }
 }
 
+function renderBannersTable(banners) {
+  const tbody = document.getElementById('bannerTableBody');
+  if (!tbody) return;
+  if (banners.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:2rem;opacity:0.5;">Sin banners registrados</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = banners.map(b => `
+    <tr>
+      <td><img src="${b.imageUrl}" alt="Banner" loading="lazy" style="width: 150px; height: auto; border-radius: 6px;"></td>
+      <td>
+        <span class="status-badge ${b.activo ? 'active' : 'inactive'}" style="cursor:pointer;" onclick="toggleBannerStatusUI('${b.id}')">
+          ${b.activo ? 'Activo' : 'Inactivo'}
+        </span>
+      </td>
+      <td class="actions-cell">
+        <button class="btn-action btn-delete" onclick="deleteBannerUI('${b.id}', '${b.imageUrl}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </td>
+    </tr>
+  `).join('');
+}
+
 window.toggleBannerStatusUI = async (id) => {
   try {
     await activateBanner(id, allBanners);
-    await loadBanners();
+    allBanners = allBanners.map(b => ({ ...b, activo: b.id === id }));
+    setCache('banners', allBanners);
+    renderBannersTable(allBanners);
     showToast('Banner activado correctamente.');
   } catch (err) {
     showToast('Error al actualizar el banner.', 'error');
@@ -191,7 +222,9 @@ window.deleteBannerUI = (id, imageUrl) => {
   openModal('Eliminar Banner', '<p>¿Confirmas que deseas eliminar este banner?</p>', async () => {
     try {
       await deleteBanner(id, imageUrl);
-      await loadBanners();
+      allBanners = allBanners.filter(b => b.id !== id);
+      setCache('banners', allBanners);
+      renderBannersTable(allBanners);
       showToast('Banner eliminado correctamente.');
     } catch (err) {
       showToast('Error al eliminar el banner.', 'error');
@@ -238,24 +271,22 @@ document.getElementById('bannerForm')?.addEventListener('submit', async e => {
   btn.disabled = true;
   status.style.color = 'inherit';
   status.innerText = 'Subiendo banner...';
-
   try {
     const webpBlob = await processToWebp(bannerImgInput.files[0]);
     const refImg = ref(storage, `banners/${Date.now()}.webp`);
     const uploadResult = await uploadBytes(refImg, webpBlob);
     const url = await getDownloadURL(uploadResult.ref);
-
-    await addBanner({ imageUrl: url, activo: false });
-
+    const docRef = await addBanner({ imageUrl: url, activo: false });
+    const newBanner = { id: docRef.id, imageUrl: url, activo: false };
+    allBanners = [...allBanners, newBanner];
+    setCache('banners', allBanners);
+    renderBannersTable(allBanners);
     status.innerText = '¡Banner subido con éxito!';
     status.style.color = '#00a84d';
     setTimeout(() => { status.innerText = ''; }, 3000);
-
     e.target.reset();
     if (bannerFilePreviewText) bannerFilePreviewText.innerText = 'Ningún archivo seleccionado';
     if (bannerPreviewContainer) bannerPreviewContainer.classList.remove('active');
-
-    await loadBanners();
   } catch (err) {
     status.innerText = 'Error: ' + err.message;
     status.style.color = '#ff3b30';
@@ -293,31 +324,20 @@ function updateFilterSelects() {
   if (!menu) return;
   const cats = getCached('cats') || [];
   const occs = getCached('occs') || [];
-
-  let html = `<li class="dropdown-item filter-item" data-value="" data-label="Todas">
-    <span class="filter-badge filter-all">Todas</span>
-  </li>`;
-
+  let html = `<li class="dropdown-item filter-item" data-value="" data-label="Todas"><span class="filter-badge filter-all">Todas</span></li>`;
   if (cats.length > 0) {
     html += `<li class="dropdown-divider-label">Categorías</li>`;
     cats.forEach(d => {
-      html += `<li class="dropdown-item filter-item" data-value="${d.id}" data-label="${d.nombre}">
-        <span class="filter-badge filter-cat">${d.nombre}</span>
-      </li>`;
+      html += `<li class="dropdown-item filter-item" data-value="${d.id}" data-label="${d.nombre}"><span class="filter-badge filter-cat">${d.nombre}</span></li>`;
     });
   }
-
   if (occs.length > 0) {
     html += `<li class="dropdown-divider-label">Fechas Especiales</li>`;
     occs.forEach(d => {
-      html += `<li class="dropdown-item filter-item" data-value="${d.id}" data-label="${d.nombre}">
-        <span class="filter-badge filter-occ">${d.nombre}</span>
-      </li>`;
+      html += `<li class="dropdown-item filter-item" data-value="${d.id}" data-label="${d.nombre}"><span class="filter-badge filter-occ">${d.nombre}</span></li>`;
     });
   }
-
   menu.innerHTML = html;
-
   document.querySelectorAll('#dropdownMenuFilter .filter-item').forEach(item => {
     item.onclick = () => {
       document.getElementById('filterCategory').value = item.getAttribute('data-value');
@@ -388,16 +408,14 @@ async function fetchPage(page) {
   renderPagination(currentPage, totalPages, hasMore);
 }
 
-function invalidatePageCache() {
-  pageCache = {};
-  pageSnapshots = [null];
+function invalidateCurrentPage() {
+  delete pageCache[currentPage];
 }
 
 function renderPagination(current, total, hasMore) {
   const wrap = document.getElementById('paginationBar');
   if (!wrap) return;
   wrap.innerHTML = '';
-
   const makeBtn = (html, page, extraClass = '') => {
     const b = document.createElement('button');
     b.className = 'btn-page' + (extraClass ? ' ' + extraClass : '');
@@ -405,18 +423,15 @@ function renderPagination(current, total, hasMore) {
     if (page !== null) b.addEventListener('click', () => fetchPage(page));
     return b;
   };
-
   const makeDots = () => {
     const s = document.createElement('span');
     s.className = 'page-dots';
     s.textContent = '···';
     return s;
   };
-
   const prevBtn = makeBtn('<i class="fa-solid fa-chevron-left"></i>', current - 1);
   if (current === 1) prevBtn.disabled = true;
   wrap.appendChild(prevBtn);
-
   let pages = [];
   if (total <= 7) {
     for (let i = 1; i <= total; i++) pages.push(i);
@@ -427,12 +442,10 @@ function renderPagination(current, total, hasMore) {
     if (current < total - 2) pages.push('...');
     pages.push(total);
   }
-
   pages.forEach(p => {
     if (p === '...') wrap.appendChild(makeDots());
     else wrap.appendChild(makeBtn(p, p, p === current ? 'active' : ''));
   });
-
   const nextBtn = makeBtn('<i class="fa-solid fa-chevron-right"></i>', current + 1);
   if (!hasMore && current === total) nextBtn.disabled = true;
   wrap.appendChild(nextBtn);
@@ -464,21 +477,14 @@ function renderTable(containerId, data, colName) {
 window.toggleStatus = async (event, col, id, currentStat) => {
   const badge = event.currentTarget;
   const newState = !currentStat;
-
   badge.classList.toggle('active', newState);
   badge.classList.toggle('inactive', !newState);
   badge.innerText = newState ? 'Activa' : 'Inactiva';
   badge.setAttribute('onclick', `toggleStatus(event, '${col}', '${id}', ${newState})`);
-
   try {
     col === 'categorias' ? await toggleCategoryStatus(id, currentStat) : await toggleOccasionStatus(id, currentStat);
     const cacheKey = col === 'categorias' ? 'cats' : 'occs';
-    let cachedData = getCached(cacheKey) || [];
-    const index = cachedData.findIndex(item => item.id === id);
-    if (index > -1) {
-      cachedData[index].activo = newState;
-      setCache(cacheKey, cachedData);
-    }
+    updateCacheItem(cacheKey, id, { activo: newState });
     showToast('Estatus actualizado correctamente.');
   } catch (err) {
     badge.classList.toggle('active', currentStat);
@@ -493,8 +499,13 @@ window.deleteItem = async (col, id) => {
   openModal('Eliminar', '<p>¿Confirmas que deseas eliminar este elemento?</p>', async () => {
     try {
       col === 'categorias' ? await deleteCategory(id) : await deleteOccasion(id);
-      clearCache(col === 'categorias' ? 'cats' : 'occs');
-      col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+      const cacheKey = col === 'categorias' ? 'cats' : 'occs';
+      removeCacheItem(cacheKey, id);
+      const data = getCached(cacheKey) || [];
+      col === 'categorias'
+        ? (renderTable('categoriesTableBody', data, 'categorias'), buildCategoryDropdown(data))
+        : (renderTable('occasionsTableBody', data, 'ocasiones'), buildOccasionCheckboxes(data));
+      updateFilterSelects();
       showToast('Elemento eliminado correctamente.');
     } catch (err) {
       showToast('Error al eliminar el elemento.', 'error');
@@ -512,8 +523,13 @@ window.editItem = (col, id, nombre) => {
       if (!val) return;
       try {
         col === 'categorias' ? await updateCategory(id, val) : await updateOccasion(id, val);
-        clearCache(col === 'categorias' ? 'cats' : 'occs');
-        col === 'categorias' ? loadCategories(true) : loadOccasions(true);
+        const cacheKey = col === 'categorias' ? 'cats' : 'occs';
+        updateCacheItem(cacheKey, id, { nombre: val });
+        const data = getCached(cacheKey) || [];
+        col === 'categorias'
+          ? (renderTable('categoriesTableBody', data, 'categorias'), buildCategoryDropdown(data))
+          : (renderTable('occasionsTableBody', data, 'ocasiones'), buildOccasionCheckboxes(data));
+        updateFilterSelects();
         showToast('Elemento actualizado correctamente.');
       } catch (err) {
         showToast('Error al actualizar el elemento.', 'error');
@@ -534,8 +550,14 @@ window.editProduct = (id, nombre, descripcion) => {
       if (!nuevoNombre) return;
       try {
         await updateProduct(id, { nombre: nuevoNombre, descripcion: nuevaDesc });
-        invalidatePageCache();
-        fetchPage(currentPage);
+        const prod = allProducts.find(p => p.id === id);
+        if (prod) {
+          prod.nombre = nuevoNombre;
+          prod.descripcion = nuevaDesc;
+          invalidateCurrentPage();
+          pageCache[currentPage] = { ...pageCache[currentPage], data: [...allProducts] };
+        }
+        applyFilters();
         showToast('Arreglo actualizado correctamente.');
       } catch (err) {
         showToast('Error al actualizar el arreglo.', 'error');
@@ -550,9 +572,16 @@ window.removeProduct = async (id, imageUrl) => {
       await deleteProduct(id);
       const imageRef = ref(storage, imageUrl);
       await deleteObject(imageRef);
-      invalidatePageCache();
-      currentPage = 1;
-      fetchPage(1);
+      invalidateCurrentPage();
+      allProducts = allProducts.filter(p => p.id !== id);
+      if (allProducts.length === 0 && currentPage > 1) {
+        pageSnapshots = [null];
+        currentPage = 1;
+        await fetchPage(1);
+      } else {
+        pageCache[currentPage] = { ...pageCache[currentPage], data: allProducts };
+        applyFilters();
+      }
       showToast('Arreglo eliminado correctamente.');
     } catch (err) {
       showToast('Error al eliminar el arreglo.', 'error');
@@ -561,11 +590,9 @@ window.removeProduct = async (id, imageUrl) => {
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
 
-async function loadCustomSections(forceRefresh = false) {
-  if (!forceRefresh) {
-    const cached = getCached('custom_sections');
-    if (cached) { renderSectionsTable(cached); return; }
-  }
+async function loadCustomSections() {
+  const cached = getCached('custom_sections');
+  if (cached) { renderSectionsTable(cached); return; }
   const data = await getSections();
   setCache('custom_sections', data);
   renderSectionsTable(data);
@@ -605,20 +632,13 @@ function renderSectionsTable(sections) {
 window.toggleSectionStatusUI = async (event, id, currentStat) => {
   const badge = event.currentTarget;
   const newState = !currentStat;
-
   badge.classList.toggle('active', newState);
   badge.classList.toggle('inactive', !newState);
   badge.innerText = newState ? 'Activa' : 'Inactiva';
   badge.setAttribute('onclick', `toggleSectionStatusUI(event, '${id}', ${newState})`);
-
   try {
     await toggleSectionStatus(id, currentStat);
-    let cachedData = getCached('custom_sections') || [];
-    const index = cachedData.findIndex(item => item.id === id);
-    if (index > -1) {
-      cachedData[index].activo = newState;
-      setCache('custom_sections', cachedData);
-    }
+    updateCacheItem('custom_sections', id, { activo: newState });
     showToast('Estatus actualizado correctamente.');
   } catch (err) {
     badge.classList.toggle('active', currentStat);
@@ -645,8 +665,8 @@ window.editSectionUI = (id, nombre, tipo) => {
       if (!val) return;
       try {
         await updateSection(id, { nombre: val, tipo: nuevoTipo });
-        clearCache('custom_sections');
-        loadCustomSections(true);
+        updateCacheItem('custom_sections', id, { nombre: val, tipo: nuevoTipo });
+        renderSectionsTable(getCached('custom_sections') || []);
         showToast('Sección actualizada correctamente.');
       } catch (err) {
         showToast('Error al actualizar la sección.', 'error');
@@ -659,8 +679,9 @@ window.deleteSectionUI = (id) => {
   openModal('Eliminar Sección', '<p>¿Confirmas que deseas eliminar esta sección y todas sus opciones?</p>', async () => {
     try {
       await deleteSection(id);
-      clearCache('custom_sections');
-      loadCustomSections(true);
+      removeCacheItem('custom_sections', id);
+      clearCache(`options_${id}`);
+      renderSectionsTable(getCached('custom_sections') || []);
       showToast('Sección eliminada correctamente.');
     } catch (err) {
       showToast('Error al eliminar la sección.', 'error');
@@ -677,27 +698,36 @@ window.openOptionsPanel = async (sectionId, sectionNombre, tipo) => {
   currentSectionId = sectionId;
   currentSectionTipo = tipo;
   optionImgFile = null;
-
   const panel = document.getElementById('panel-options');
   const title = document.getElementById('optionsSectionTitle');
   const formImg = document.getElementById('optionImageGroup');
   const formColor = document.getElementById('optionColorGroup');
-
   title.textContent = `Opciones — ${sectionNombre}`;
   formImg.style.display = tipo === 'imagen' ? 'flex' : 'none';
   formColor.style.display = tipo === 'color' ? 'flex' : 'none';
-
   document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.crud-section').forEach(s => s.classList.remove('active'));
   panel.classList.add('active');
-
   await loadOptions(sectionId, tipo);
 };
 
 async function loadOptions(sectionId, tipo) {
   const tbody = document.getElementById('optionsTableBody');
+  const cacheKey = `options_${sectionId}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    renderOptionsTable(cached, tipo);
+    return;
+  }
   tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;opacity:0.5;">Cargando...</td></tr>`;
   const data = await getOptionsBySection(sectionId);
+  setCache(cacheKey, data);
+  renderOptionsTable(data, tipo);
+}
+
+function renderOptionsTable(data, tipo) {
+  const tbody = document.getElementById('optionsTableBody');
+  if (!tbody) return;
   if (data.length === 0) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;opacity:0.5;">Sin opciones registradas</td></tr>`;
     return;
@@ -706,9 +736,9 @@ async function loadOptions(sectionId, tipo) {
     <tr>
       <td>
         ${tipo === 'imagen'
-      ? `<img src="${o.imageUrl || ''}" class="td-img" alt="${o.nombre}" loading="lazy">`
-      : `<span class="color-dot" style="background:${o.color || '#ccc'}"></span>`
-    }
+          ? `<img src="${o.imageUrl || ''}" class="td-img" alt="${o.nombre}" loading="lazy">`
+          : `<span class="color-dot" style="background:${o.color || '#ccc'}"></span>`
+        }
       </td>
       <td>${o.nombre}</td>
       <td>$${Number(o.precio).toFixed(2)}</td>
@@ -732,14 +762,13 @@ async function loadOptions(sectionId, tipo) {
 window.toggleOptionStatusUI = async (event, id, currentStat) => {
   const badge = event.currentTarget;
   const newState = !currentStat;
-
   badge.classList.toggle('active', newState);
   badge.classList.toggle('inactive', !newState);
   badge.innerText = newState ? 'Activa' : 'Inactiva';
   badge.setAttribute('onclick', `toggleOptionStatusUI(event, '${id}', ${newState})`);
-
   try {
     await toggleOptionStatus(id, currentStat);
+    updateCacheItem(`options_${currentSectionId}`, id, { activo: newState });
     showToast('Estatus actualizado correctamente.');
   } catch (err) {
     badge.classList.toggle('active', currentStat);
@@ -754,7 +783,8 @@ window.deleteOptionUI = (id, imageUrl) => {
   openModal('Eliminar Opción', '<p>¿Confirmas que deseas eliminar esta opción?</p>', async () => {
     try {
       await deleteOption(id, imageUrl || null);
-      await loadOptions(currentSectionId, currentSectionTipo);
+      removeCacheItem(`options_${currentSectionId}`, id);
+      renderOptionsTable(getCached(`options_${currentSectionId}`) || [], currentSectionTipo);
       showToast('Opción eliminada correctamente.');
     } catch (err) {
       showToast('Error al eliminar la opción.', 'error');
@@ -797,12 +827,13 @@ window.editOptionUI = (id, nombre, precio, imageUrl, color) => {
           const uploaded = await uploadBytes(refImg, webpBlob);
           updateData.imageUrl = await getDownloadURL(uploaded.ref);
           if (imageUrl) {
-            try { await deleteObject(ref(storage, imageUrl)); } catch (_) { }
+            try { await deleteObject(ref(storage, imageUrl)); } catch (_) {}
           }
         }
       }
       await updateOption(id, updateData);
-      await loadOptions(currentSectionId, currentSectionTipo);
+      updateCacheItem(`options_${currentSectionId}`, id, updateData);
+      renderOptionsTable(getCached(`options_${currentSectionId}`) || [], currentSectionTipo);
       showToast('Opción actualizada correctamente.');
     } catch (err) {
       showToast('Error al actualizar la opción.', 'error');
@@ -841,13 +872,10 @@ document.getElementById('optionForm')?.addEventListener('submit', async e => {
   const nombre = document.getElementById('optionNombre').value.trim();
   const precio = parseFloat(document.getElementById('optionPrecio').value);
   if (!nombre || isNaN(precio)) return;
-
   const btn = document.getElementById('optionSubmitBtn');
   btn.disabled = true;
-
   try {
     const data = { seccionId: currentSectionId, nombre, precio };
-
     if (currentSectionTipo === 'imagen') {
       if (!optionImgFile) { showToast('Selecciona una imagen.', 'error'); btn.disabled = false; return; }
       const webpBlob = await processToWebp(optionImgFile);
@@ -857,9 +885,11 @@ document.getElementById('optionForm')?.addEventListener('submit', async e => {
     } else {
       data.color = document.getElementById('optionColor').value;
     }
-
-    await addOption(data);
-    await loadOptions(currentSectionId, currentSectionTipo);
+    const docRef = await addOption(data);
+    const newOption = { id: docRef.id, ...data, activo: true };
+    const cacheKey = `options_${currentSectionId}`;
+    addCacheItem(cacheKey, newOption);
+    renderOptionsTable(getCached(cacheKey) || [], currentSectionTipo);
     e.target.reset();
     if (optionImgPreviewContainer) optionImgPreviewContainer.classList.remove('active');
     optionImgFile = null;
@@ -877,9 +907,10 @@ document.getElementById('sectionForm')?.addEventListener('submit', async e => {
   const tipo = document.getElementById('newSectionTipo').value;
   if (!nombre) return;
   try {
-    await addSection({ nombre, tipo });
-    clearCache('custom_sections');
-    loadCustomSections(true);
+    const docRef = await addSection({ nombre, tipo });
+    const newSection = { id: docRef.id, nombre, tipo, activo: true };
+    addCacheItem('custom_sections', newSection);
+    renderSectionsTable(getCached('custom_sections') || []);
     e.target.reset();
     showToast('Sección agregada correctamente.');
   } catch (err) {
@@ -992,7 +1023,6 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
   const itemName = document.getElementById('itemName');
   const itemDesc = document.getElementById('itemDesc');
   const itemCategory = document.getElementById('itemCategory');
-
   try {
     btn.disabled = true;
     status.style.color = 'inherit';
@@ -1016,7 +1046,8 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
     document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
     imagePreviewContainer.classList.remove('active');
     document.getElementById('dropdownSelectedText').innerText = 'Ninguna categoría';
-    invalidatePageCache();
+    pageSnapshots = [null];
+    pageCache = {};
     currentPage = 1;
     updateExclusiveLogic();
     fetchPage(1);
@@ -1030,10 +1061,16 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
 
 document.getElementById('categoryForm')?.addEventListener('submit', async e => {
   e.preventDefault();
+  const nombre = document.getElementById('newCategoryName').value.trim();
+  if (!nombre) return;
   try {
-    await addCategory(document.getElementById('newCategoryName').value.trim());
-    clearCache('cats');
-    loadCategories(true);
+    const docRef = await addCategory(nombre);
+    const newCat = { id: docRef.id, nombre, activo: true };
+    addCacheItem('cats', newCat);
+    const data = getCached('cats') || [];
+    renderTable('categoriesTableBody', data, 'categorias');
+    buildCategoryDropdown(data);
+    updateFilterSelects();
     e.target.reset();
     showToast('Categoría agregada correctamente.');
   } catch (err) {
@@ -1043,10 +1080,16 @@ document.getElementById('categoryForm')?.addEventListener('submit', async e => {
 
 document.getElementById('occasionForm')?.addEventListener('submit', async e => {
   e.preventDefault();
+  const nombre = document.getElementById('newOccasionName').value.trim();
+  if (!nombre) return;
   try {
-    await addOccasion(document.getElementById('newOccasionName').value.trim());
-    clearCache('occs');
-    loadOccasions(true);
+    const docRef = await addOccasion(nombre);
+    const newOcc = { id: docRef.id, nombre, activo: true };
+    addCacheItem('occs', newOcc);
+    const data = getCached('occs') || [];
+    renderTable('occasionsTableBody', data, 'ocasiones');
+    buildOccasionCheckboxes(data);
+    updateFilterSelects();
     e.target.reset();
     showToast('Fecha especial agregada correctamente.');
   } catch (err) {

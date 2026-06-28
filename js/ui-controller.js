@@ -364,7 +364,7 @@ async function fetchPage(page) {
   if (pageCache[page]) {
     allProducts = pageCache[page].data;
     currentPage = page;
-    renderCatalogTable(allProducts);
+    applyFilters();
     renderPagination(currentPage, pageCache[page].totalPages, pageCache[page].hasMore);
     return;
   }
@@ -384,8 +384,8 @@ async function fetchPage(page) {
   const hasMore = snap.docs.length === PAGE_SIZE;
   const totalPages = hasMore ? Math.max(pageSnapshots.filter(Boolean).length, page + 1) : page;
   pageCache[page] = { data, totalPages, hasMore };
-  renderCatalogTable(allProducts);
-  renderPagination(currentPage, totalPages, hasMore);
+  applyFilters();
+renderPagination(currentPage, totalPages, hasMore);
 }
 
 function invalidatePageCache() {

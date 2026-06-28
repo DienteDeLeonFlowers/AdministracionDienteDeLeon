@@ -88,7 +88,7 @@ function getCached(key) {
     const data = sessionStorage.getItem(key);
     const ts = sessionStorage.getItem(key + '_ts');
     if (data && ts && Date.now() - Number(ts) < CACHE_TTL) return JSON.parse(data);
-  } catch (_) {}
+  } catch (_) { }
   return null;
 }
 
@@ -96,7 +96,7 @@ function setCache(key, data) {
   try {
     sessionStorage.setItem(key, JSON.stringify(data));
     sessionStorage.setItem(key + '_ts', Date.now());
-  } catch (_) {}
+  } catch (_) { }
 }
 
 function clearCache(key) {
@@ -385,7 +385,7 @@ async function fetchPage(page) {
   const totalPages = hasMore ? Math.max(pageSnapshots.filter(Boolean).length, page + 1) : page;
   pageCache[page] = { data, totalPages, hasMore };
   applyFilters();
-renderPagination(currentPage, totalPages, hasMore);
+  renderPagination(currentPage, totalPages, hasMore);
 }
 
 function invalidatePageCache() {
@@ -706,9 +706,9 @@ async function loadOptions(sectionId, tipo) {
     <tr>
       <td>
         ${tipo === 'imagen'
-          ? `<img src="${o.imageUrl || ''}" class="td-img" alt="${o.nombre}" loading="lazy">`
-          : `<span class="color-dot" style="background:${o.color || '#ccc'}"></span>`
-        }
+      ? `<img src="${o.imageUrl || ''}" class="td-img" alt="${o.nombre}" loading="lazy">`
+      : `<span class="color-dot" style="background:${o.color || '#ccc'}"></span>`
+    }
       </td>
       <td>${o.nombre}</td>
       <td>$${Number(o.precio).toFixed(2)}</td>
@@ -797,7 +797,7 @@ window.editOptionUI = (id, nombre, precio, imageUrl, color) => {
           const uploaded = await uploadBytes(refImg, webpBlob);
           updateData.imageUrl = await getDownloadURL(uploaded.ref);
           if (imageUrl) {
-            try { await deleteObject(ref(storage, imageUrl)); } catch (_) {}
+            try { await deleteObject(ref(storage, imageUrl)); } catch (_) { }
           }
         }
       }

@@ -51,6 +51,51 @@ setTimeout(() => {
 window.addEventListener('resize', () => setIndicator(getActivePanelIndex(), false));
 
 if (sidebarMenu && navIndicator) {
+
+  let touchDragging = false;
+  let touchStartX = 0;
+  let touchStartIndex = 0;
+  let touchLiveIndex = 0;
+
+  sidebarMenu.addEventListener('touchstart', e => {
+    if (!isMobileLayout()) return;
+    touchDragging = false;
+    touchStartX = e.touches[0].clientX;
+    touchStartIndex = getActivePanelIndex();
+    touchLiveIndex = touchStartIndex;
+  }, { passive: true });
+
+  sidebarMenu.addEventListener('touchmove', e => {
+    if (!isMobileLayout()) return;
+    const dx = e.touches[0].clientX - touchStartX;
+
+    if (!touchDragging && Math.abs(dx) > 6) {
+      touchDragging = true;
+      navIndicator.style.transition = 'none';
+    }
+
+    if (touchDragging) {
+      e.preventDefault();
+      const menuW = sidebarMenu.offsetWidth - 8;
+      const stepPx = menuW / panelsOrder.length;
+      const raw = touchStartIndex + dx / stepPx;
+      const clamped = Math.min(Math.max(raw, 0), panelsOrder.length - 1);
+
+      sidebarMenu.style.setProperty('--indicator-index', clamped);
+      const snapped = Math.round(clamped);
+      if (snapped !== Math.round(touchLiveIndex)) setActiveBtn(snapped);
+      touchLiveIndex = clamped;
+    }
+  }, { passive: false });
+
+  sidebarMenu.addEventListener('touchend', e => {
+    if (!isMobileLayout()) return;
+    if (!touchDragging) return;
+    touchDragging = false;
+    const finalIdx = Math.min(Math.max(Math.round(touchLiveIndex), 0), panelsOrder.length - 1);
+    switchPanel(panelsOrder[finalIdx], true);
+  }, { passive: true });
+
   let dragging = false;
   let startX = 0;
   let startIndex = 0;
@@ -59,34 +104,26 @@ if (sidebarMenu && navIndicator) {
   let pointerCaptured = false;
 
   sidebarMenu.addEventListener('pointerdown', e => {
-    if (!isMobileLayout()) return;
+    if (!isMobileLayout() || e.pointerType !== 'mouse') return;
     dragging = false;
     pointerCaptured = false;
     startX = e.clientX;
     startIndex = getActivePanelIndex();
     liveIndex = startIndex;
     pointerId = e.pointerId;
-    if (e.pointerType !== 'mouse') {
-      try {
-        sidebarMenu.setPointerCapture(e.pointerId);
-        pointerCaptured = true;
-      } catch (_) {}
-    }
   });
 
   sidebarMenu.addEventListener('pointermove', e => {
-    if (!isMobileLayout() || e.pointerId !== pointerId) return;
+    if (!isMobileLayout() || e.pointerType !== 'mouse' || e.pointerId !== pointerId) return;
     const dx = e.clientX - startX;
 
     if (!dragging && Math.abs(dx) > 6) {
       dragging = true;
       navIndicator.style.transition = 'none';
-      if (!pointerCaptured) {
-        try {
-          sidebarMenu.setPointerCapture(e.pointerId);
-          pointerCaptured = true;
-        } catch (_) {}
-      }
+      try {
+        sidebarMenu.setPointerCapture(e.pointerId);
+        pointerCaptured = true;
+      } catch (_) {}
     }
 
     if (dragging) {
@@ -102,8 +139,8 @@ if (sidebarMenu && navIndicator) {
     }
   });
 
-  function endDrag(e) {
-    if (e.pointerId !== pointerId) return;
+  function endMouseDrag(e) {
+    if (e.pointerType !== 'mouse' || e.pointerId !== pointerId) return;
     if (!dragging) {
       pointerId = null;
       pointerCaptured = false;
@@ -115,13 +152,12 @@ if (sidebarMenu && navIndicator) {
     }
     pointerId = null;
     pointerCaptured = false;
-
     const finalIdx = Math.min(Math.max(Math.round(liveIndex), 0), panelsOrder.length - 1);
     switchPanel(panelsOrder[finalIdx], true);
   }
 
-  sidebarMenu.addEventListener('pointerup', endDrag);
-  sidebarMenu.addEventListener('pointercancel', endDrag);
+  sidebarMenu.addEventListener('pointerup', endMouseDrag);
+  sidebarMenu.addEventListener('pointercancel', endMouseDrag);
 }
 
 let swipeStartX = 0;

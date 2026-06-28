@@ -5,6 +5,12 @@ const sidebarMenu = document.querySelector('.sidebar-menu');
 
 const panelsOrder = Array.from(menuButtons).map(btn => btn.getAttribute('data-target'));
 
+const MOBILE_BREAKPOINT = 860;
+
+function isMobileLayout() {
+  return window.innerWidth <= MOBILE_BREAKPOINT;
+}
+
 function getActivePanelIndex() {
   const active = Array.from(crudSections).find(s => s.classList.contains('active'));
   return active ? panelsOrder.indexOf(active.id) : 0;
@@ -23,7 +29,6 @@ function setActiveBtn(index) {
 function switchPanel(panelId, animate = true) {
   const index = panelsOrder.indexOf(panelId);
   if (index === -1) return;
-  
   setActiveBtn(index);
   setIndicator(index, animate);
   crudSections.forEach(s => s.classList.toggle('active', s.id === panelId));
@@ -51,32 +56,45 @@ if (sidebarMenu && navIndicator) {
   let startIndex = 0;
   let liveIndex = 0;
   let pointerId = null;
+  let pointerCaptured = false;
 
   sidebarMenu.addEventListener('pointerdown', e => {
-    if (window.innerWidth > 1024) return;
+    if (!isMobileLayout()) return;
     dragging = false;
+    pointerCaptured = false;
     startX = e.clientX;
     startIndex = getActivePanelIndex();
     liveIndex = startIndex;
     pointerId = e.pointerId;
+    if (e.pointerType !== 'mouse') {
+      try {
+        sidebarMenu.setPointerCapture(e.pointerId);
+        pointerCaptured = true;
+      } catch (_) {}
+    }
   });
 
   sidebarMenu.addEventListener('pointermove', e => {
-    if (window.innerWidth > 1024 || e.pointerId !== pointerId) return;
+    if (!isMobileLayout() || e.pointerId !== pointerId) return;
     const dx = e.clientX - startX;
-    
-    if (!dragging && Math.abs(dx) > 6) { 
-      dragging = true; 
-      sidebarMenu.setPointerCapture(e.pointerId);
-      navIndicator.style.transition = 'none'; 
+
+    if (!dragging && Math.abs(dx) > 6) {
+      dragging = true;
+      navIndicator.style.transition = 'none';
+      if (!pointerCaptured) {
+        try {
+          sidebarMenu.setPointerCapture(e.pointerId);
+          pointerCaptured = true;
+        } catch (_) {}
+      }
     }
-    
+
     if (dragging) {
       const menuW = sidebarMenu.offsetWidth - 8;
-      const stepPx = menuW / panelsOrder.length; 
+      const stepPx = menuW / panelsOrder.length;
       const raw = startIndex + dx / stepPx;
       const clamped = Math.min(Math.max(raw, 0), panelsOrder.length - 1);
-      
+
       sidebarMenu.style.setProperty('--indicator-index', clamped);
       const snapped = Math.round(clamped);
       if (snapped !== Math.round(liveIndex)) setActiveBtn(snapped);
@@ -85,18 +103,23 @@ if (sidebarMenu && navIndicator) {
   });
 
   function endDrag(e) {
+    if (e.pointerId !== pointerId) return;
     if (!dragging) {
       pointerId = null;
+      pointerCaptured = false;
       return;
     }
     dragging = false;
-    if (pointerId) sidebarMenu.releasePointerCapture(pointerId);
+    if (pointerCaptured) {
+      try { sidebarMenu.releasePointerCapture(pointerId); } catch (_) {}
+    }
     pointerId = null;
-    
+    pointerCaptured = false;
+
     const finalIdx = Math.min(Math.max(Math.round(liveIndex), 0), panelsOrder.length - 1);
     switchPanel(panelsOrder[finalIdx], true);
   }
-  
+
   sidebarMenu.addEventListener('pointerup', endDrag);
   sidebarMenu.addEventListener('pointercancel', endDrag);
 }
@@ -106,17 +129,17 @@ let swipeStartY = 0;
 let swipeOnNav = false;
 
 window.addEventListener('touchstart', e => {
-  if (window.innerWidth > 1024) return;
+  if (!isMobileLayout()) return;
   swipeStartX = e.touches[0].clientX;
   swipeStartY = e.touches[0].clientY;
   swipeOnNav = sidebarMenu?.contains(e.target) ?? false;
 }, { passive: true });
 
 window.addEventListener('touchend', e => {
-  if (window.innerWidth > 1024 || swipeOnNav) return;
+  if (!isMobileLayout() || swipeOnNav) return;
   const dx = swipeStartX - e.changedTouches[0].clientX;
   const dy = swipeStartY - e.changedTouches[0].clientY;
-  
+
   if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
     const cur = getActivePanelIndex();
     if (dx > 0 && cur < panelsOrder.length - 1) switchPanel(panelsOrder[cur + 1]);

@@ -11,28 +11,30 @@ import { addSection, updateSection, toggleSectionStatus, deleteSection, getSecti
 import { addOption, updateOption, toggleOptionStatus, deleteOption, getOptionsBySection } from './services/customOptionService.js';
 import { getBanners, addBanner, activateBanner, deleteBanner } from './services/bannerService.js';
 
-let allProducts = [];
-let allBanners = [];
+let allProducts   = [];
+let allBanners    = [];
 let pageSnapshots = [null];
-let pageCache = {};
-let currentPage = 1;
-const PAGE_SIZE = 10;
-const CACHE_TTL = 60 * 60 * 1000;
+let pageCache     = {};
+let currentPage   = 1;
+const PAGE_SIZE   = 10;
+const CACHE_TTL   = 60 * 60 * 1000;
 let lastWriteTime = 0;
 let inactivityChecker;
 
-const itemImg = document.getElementById('itemImg');
-const imagePreview = document.getElementById('imagePreview');
+const itemImg               = document.getElementById('itemImg');
+const imagePreview          = document.getElementById('imagePreview');
 const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-const categoryDropdown = document.getElementById('categoryDropdown');
-const filterDropdown = document.getElementById('filterDropdown');
+const categoryDropdown      = document.getElementById('categoryDropdown');
+const filterDropdown        = document.getElementById('filterDropdown');
 
 function showToast(message, type = 'success') {
   const existing = document.querySelector('.toast-notification');
   if (existing) existing.remove();
   const toast = document.createElement('div');
   toast.className = `toast-notification toast-${type}`;
-  const icon = type === 'success' ? '<i class="fa-solid fa-circle-check"></i>' : '<i class="fa-solid fa-circle-exclamation"></i>';
+  const icon = type === 'success'
+    ? '<i class="fa-solid fa-circle-check"></i>'
+    : '<i class="fa-solid fa-circle-exclamation"></i>';
   toast.innerHTML = `${icon}<span>${message}</span>`;
   document.body.appendChild(toast);
   requestAnimationFrame(() => toast.classList.add('toast-visible'));
@@ -74,9 +76,9 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
-['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt => {
-  document.addEventListener(evt, resetInactivityTimer, { passive: true });
-});
+['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(evt =>
+  document.addEventListener(evt, resetInactivityTimer, { passive: true })
+);
 
 const contentPanel = document.querySelector('.content-panel');
 if (contentPanel) contentPanel.addEventListener('scroll', resetInactivityTimer, { passive: true });
@@ -84,7 +86,7 @@ if (contentPanel) contentPanel.addEventListener('scroll', resetInactivityTimer, 
 function getCached(key) {
   try {
     const data = sessionStorage.getItem(key);
-    const ts = sessionStorage.getItem(key + '_ts');
+    const ts   = sessionStorage.getItem(key + '_ts');
     if (data && ts && Date.now() - Number(ts) < CACHE_TTL) return JSON.parse(data);
   } catch (_) {}
   return null;
@@ -106,10 +108,7 @@ function updateCacheItem(key, id, changes) {
   const cached = getCached(key);
   if (!cached) return;
   const index = cached.findIndex(item => item.id === id);
-  if (index > -1) {
-    cached[index] = { ...cached[index], ...changes };
-    setCache(key, cached);
-  }
+  if (index > -1) { cached[index] = { ...cached[index], ...changes }; setCache(key, cached); }
 }
 
 function addCacheItem(key, item) {
@@ -124,11 +123,23 @@ function removeCacheItem(key, id) {
   setCache(key, cached.filter(item => item.id !== id));
 }
 
+async function uploadImage(file, folder) {
+  const webpBlob = await processToWebp(file);
+  const imgRef   = ref(storage, `${folder}/${Date.now()}.webp`);
+  const result   = await uploadBytes(imgRef, webpBlob);
+  return await getDownloadURL(result.ref);
+}
+
+async function deleteImageIfExists(imageUrl) {
+  if (!imageUrl) return;
+  try { await deleteObject(ref(storage, imageUrl)); } catch (_) {}
+}
+
 function getClasificacionNombre(catId, occId) {
   const cats = getCached('cats') || [];
   const occs = getCached('occs') || [];
   const categoria = cats.find(c => c.id === catId);
-  const ocasion = occs.find(o => o.id === occId);
+  const ocasion   = occs.find(o => o.id === occId);
   return (categoria ? categoria.nombre : '') || (ocasion ? ocasion.nombre : '') || '—';
 }
 
@@ -165,21 +176,15 @@ async function loadOccasions() {
 }
 
 async function loadBanners() {
-  const tbody = document.getElementById('bannerTableBody');
+  const tbody  = document.getElementById('bannerTableBody');
   if (!tbody) return;
   const cached = getCached('banners');
-  if (cached) {
-    allBanners = cached;
-    renderBannersTable(cached);
-    return;
-  }
+  if (cached) { allBanners = cached; renderBannersTable(cached); return; }
   try {
     allBanners = await getBanners();
     setCache('banners', allBanners);
     renderBannersTable(allBanners);
-  } catch (error) {
-    console.error(error);
-  }
+  } catch (error) { console.error(error); }
 }
 
 function renderBannersTable(banners) {
@@ -191,7 +196,7 @@ function renderBannersTable(banners) {
   }
   tbody.innerHTML = banners.map(b => `
     <tr>
-      <td><img src="${b.imageUrl}" alt="Banner" loading="lazy" style="width: 150px; height: auto; border-radius: 6px;"></td>
+      <td><img src="${b.imageUrl}" alt="Banner" loading="lazy" style="width:150px;height:auto;border-radius:6px;"></td>
       <td>
         <span class="status-badge ${b.activo ? 'active' : 'inactive'}" style="cursor:pointer;" onclick="toggleBannerStatusUI('${b.id}')">
           ${b.activo ? 'Activo' : 'Inactivo'}
@@ -213,9 +218,7 @@ window.toggleBannerStatusUI = async (id) => {
     setCache('banners', allBanners);
     renderBannersTable(allBanners);
     showToast('Banner activado correctamente.');
-  } catch (err) {
-    showToast('Error al actualizar el banner.', 'error');
-  }
+  } catch (err) { showToast('Error al actualizar el banner.', 'error'); }
 };
 
 window.deleteBannerUI = (id, imageUrl) => {
@@ -226,30 +229,27 @@ window.deleteBannerUI = (id, imageUrl) => {
       setCache('banners', allBanners);
       renderBannersTable(allBanners);
       showToast('Banner eliminado correctamente.');
-    } catch (err) {
-      showToast('Error al eliminar el banner.', 'error');
-    }
+    } catch (err) { showToast('Error al eliminar el banner.', 'error'); }
   });
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
 
-const bannerImgInput = document.getElementById('bannerImg');
-const bannerPreview = document.getElementById('bannerPreview');
+const bannerImgInput         = document.getElementById('bannerImg');
+const bannerPreview          = document.getElementById('bannerPreview');
 const bannerPreviewContainer = document.getElementById('bannerPreviewContainer');
-const bannerFilePreviewText = document.getElementById('bannerFilePreviewText');
+const bannerFilePreviewText  = document.getElementById('bannerFilePreviewText');
 
 if (bannerImgInput) {
   bannerImgInput.addEventListener('change', function () {
     const file = this.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = e => {
-        bannerPreview.src = e.target.result;
-        bannerPreviewContainer.classList.add('active');
-        if (bannerFilePreviewText) bannerFilePreviewText.innerText = file.name;
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      bannerPreview.src = e.target.result;
+      bannerPreviewContainer.classList.add('active');
+      if (bannerFilePreviewText) bannerFilePreviewText.innerText = file.name;
+    };
+    reader.readAsDataURL(file);
   });
 }
 
@@ -262,47 +262,41 @@ document.getElementById('btnRemoveBanner')?.addEventListener('click', () => {
 
 document.getElementById('bannerForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  if (!bannerImgInput.files[0]) {
-    showToast('Selecciona una imagen para el banner.', 'error');
-    return;
-  }
-  const btn = document.getElementById('bannerSubmitBtn');
+  if (!bannerImgInput.files[0]) { showToast('Selecciona una imagen para el banner.', 'error'); return; }
+  const btn    = document.getElementById('bannerSubmitBtn');
   const status = document.getElementById('bannerStatus');
-  btn.disabled = true;
+  btn.disabled       = true;
   status.style.color = 'inherit';
-  status.innerText = 'Subiendo banner...';
+  status.innerText   = 'Subiendo banner...';
   try {
-    const webpBlob = await processToWebp(bannerImgInput.files[0]);
-    const refImg = ref(storage, `banners/${Date.now()}.webp`);
-    const uploadResult = await uploadBytes(refImg, webpBlob);
-    const url = await getDownloadURL(uploadResult.ref);
-    const docRef = await addBanner({ imageUrl: url, activo: false });
+    const url       = await uploadImage(bannerImgInput.files[0], 'banners');
+    const docRef    = await addBanner({ imageUrl: url, activo: false });
     const newBanner = { id: docRef.id, imageUrl: url, activo: false };
     allBanners = [...allBanners, newBanner];
     setCache('banners', allBanners);
     renderBannersTable(allBanners);
-    status.innerText = '¡Banner subido con éxito!';
+    status.innerText   = '¡Banner subido con éxito!';
     status.style.color = '#00a84d';
     setTimeout(() => { status.innerText = ''; }, 3000);
     e.target.reset();
     if (bannerFilePreviewText) bannerFilePreviewText.innerText = 'Ningún archivo seleccionado';
     if (bannerPreviewContainer) bannerPreviewContainer.classList.remove('active');
   } catch (err) {
-    status.innerText = 'Error: ' + err.message;
+    status.innerText   = 'Error: ' + err.message;
     status.style.color = '#ff3b30';
-  } finally {
-    btn.disabled = false;
-  }
+  } finally { btn.disabled = false; }
 });
 
 function buildCategoryDropdown(data) {
   const menu = document.getElementById('dropdownMenuCategories');
   if (!menu) return;
   menu.innerHTML = `<li class="dropdown-item" data-value="">Ninguna categoría</li>` +
-    data.filter(d => d.activo).map(d => `<li class="dropdown-item" data-value="${d.id}">${d.nombre}</li>`).join('');
+    data.filter(d => d.activo).map(d =>
+      `<li class="dropdown-item" data-value="${d.id}">${d.nombre}</li>`
+    ).join('');
   document.querySelectorAll('#dropdownMenuCategories .dropdown-item').forEach(item => {
     item.onclick = () => {
-      document.getElementById('itemCategory').value = item.getAttribute('data-value');
+      document.getElementById('itemCategory').value            = item.getAttribute('data-value');
       document.getElementById('dropdownSelectedText').innerText = item.innerText;
       categoryDropdown.classList.remove('active');
       updateExclusiveLogic();
@@ -316,7 +310,9 @@ function buildOccasionCheckboxes(data) {
   grid.innerHTML = data.filter(d => d.activo).map(d =>
     `<label class="checkbox-label"><input type="radio" name="occasion" value="${d.id}"><span class="custom-checkbox"></span>${d.nombre}</label>`
   ).join('');
-  document.querySelectorAll('input[name="occasion"]').forEach(cb => cb.addEventListener('click', updateExclusiveLogic));
+  document.querySelectorAll('input[name="occasion"]').forEach(cb =>
+    cb.addEventListener('click', updateExclusiveLogic)
+  );
 }
 
 function updateFilterSelects() {
@@ -340,8 +336,8 @@ function updateFilterSelects() {
   menu.innerHTML = html;
   document.querySelectorAll('#dropdownMenuFilter .filter-item').forEach(item => {
     item.onclick = () => {
-      document.getElementById('filterCategory').value = item.getAttribute('data-value');
-      document.getElementById('filterSelectedText').innerText = item.getAttribute('data-label');
+      document.getElementById('filterCategory').value          = item.getAttribute('data-value');
+      document.getElementById('filterSelectedText').innerText  = item.getAttribute('data-label');
       filterDropdown.classList.remove('active');
       applyFilters();
     };
@@ -371,10 +367,10 @@ function renderCatalogTable(data) {
 
 window.applyFilters = () => {
   const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-  const filterVal = document.getElementById('filterCategory').value;
-  const filtered = allProducts.filter(p => {
+  const filterVal  = document.getElementById('filterCategory').value;
+  const filtered   = allProducts.filter(p => {
     const matchesSearch = p.nombre.toLowerCase().includes(searchTerm);
-    const matchesCat = filterVal === "" || p.categoria === filterVal || p.ocasiones === filterVal;
+    const matchesCat    = filterVal === '' || p.categoria === filterVal || p.ocasiones === filterVal;
     return matchesSearch && matchesCat;
   });
   renderCatalogTable(filtered);
@@ -390,20 +386,16 @@ async function fetchPage(page) {
   }
   const cursor = pageSnapshots[page - 1];
   let q = query(collection(db, 'productos'), orderBy('fecha', 'desc'), limit(PAGE_SIZE));
-  if (cursor) {
-    q = query(collection(db, 'productos'), orderBy('fecha', 'desc'), startAfter(cursor), limit(PAGE_SIZE));
-  }
+  if (cursor) q = query(collection(db, 'productos'), orderBy('fecha', 'desc'), startAfter(cursor), limit(PAGE_SIZE));
   const snap = await getDocs(q);
   if (snap.empty && page > 1) return;
-  if (snap.docs.length > 0 && !pageSnapshots[page]) {
-    pageSnapshots[page] = snap.docs[snap.docs.length - 1];
-  }
-  const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  allProducts = data;
-  currentPage = page;
-  const hasMore = snap.docs.length === PAGE_SIZE;
+  if (snap.docs.length > 0 && !pageSnapshots[page]) pageSnapshots[page] = snap.docs[snap.docs.length - 1];
+  const data       = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  allProducts      = data;
+  currentPage      = page;
+  const hasMore    = snap.docs.length === PAGE_SIZE;
   const totalPages = hasMore ? Math.max(pageSnapshots.filter(Boolean).length, page + 1) : page;
-  pageCache[page] = { data, totalPages, hasMore };
+  pageCache[page]  = { data, totalPages, hasMore };
   applyFilters();
   renderPagination(currentPage, totalPages, hasMore);
 }
@@ -425,7 +417,7 @@ function renderPagination(current, total, hasMore) {
   };
   const makeDots = () => {
     const s = document.createElement('span');
-    s.className = 'page-dots';
+    s.className   = 'page-dots';
     s.textContent = '···';
     return s;
   };
@@ -456,6 +448,12 @@ function renderTable(containerId, data, colName) {
   if (!container) return;
   container.innerHTML = data.map(doc => `
     <tr>
+      <td>
+        ${doc.imageUrl
+          ? `<img src="${doc.imageUrl}" class="td-img" alt="${doc.nombre}" loading="lazy">`
+          : `<div class="td-img-placeholder"><i class="fa-solid fa-image"></i></div>`
+        }
+      </td>
       <td>${doc.nombre}</td>
       <td>
         <span class="status-badge ${doc.activo ? 'active' : 'inactive'}" onclick="toggleStatus(event, '${colName}', '${doc.id}', ${doc.activo})">
@@ -463,10 +461,10 @@ function renderTable(containerId, data, colName) {
         </span>
       </td>
       <td class="actions-cell">
-        <button class="btn-action btn-edit" onclick="editItem('${colName}', '${doc.id}', \`${doc.nombre}\`)">
+        <button class="btn-action btn-edit" onclick="editItem('${colName}', '${doc.id}', \`${doc.nombre}\`, '${doc.imageUrl || ''}')">
           <i class="fa-solid fa-pen"></i>
         </button>
-        <button class="btn-action btn-delete" onclick="deleteItem('${colName}', '${doc.id}')">
+        <button class="btn-action btn-delete" onclick="deleteItem('${colName}', '${doc.id}', '${doc.imageUrl || ''}')">
           <i class="fa-solid fa-trash"></i>
         </button>
       </td>
@@ -475,7 +473,7 @@ function renderTable(containerId, data, colName) {
 }
 
 window.toggleStatus = async (event, col, id, currentStat) => {
-  const badge = event.currentTarget;
+  const badge    = event.currentTarget;
   const newState = !currentStat;
   badge.classList.toggle('active', newState);
   badge.classList.toggle('inactive', !newState);
@@ -483,8 +481,7 @@ window.toggleStatus = async (event, col, id, currentStat) => {
   badge.setAttribute('onclick', `toggleStatus(event, '${col}', '${id}', ${newState})`);
   try {
     col === 'categorias' ? await toggleCategoryStatus(id, currentStat) : await toggleOccasionStatus(id, currentStat);
-    const cacheKey = col === 'categorias' ? 'cats' : 'occs';
-    updateCacheItem(cacheKey, id, { activo: newState });
+    updateCacheItem(col === 'categorias' ? 'cats' : 'occs', id, { activo: newState });
     showToast('Estatus actualizado correctamente.');
   } catch (err) {
     badge.classList.toggle('active', currentStat);
@@ -495,47 +492,96 @@ window.toggleStatus = async (event, col, id, currentStat) => {
   }
 };
 
-window.deleteItem = async (col, id) => {
+window.deleteItem = async (col, id, imageUrl) => {
   openModal('Eliminar', '<p>¿Confirmas que deseas eliminar este elemento?</p>', async () => {
     try {
-      col === 'categorias' ? await deleteCategory(id) : await deleteOccasion(id);
+      col === 'categorias' ? await deleteCategory(id, imageUrl) : await deleteOccasion(id, imageUrl);
       const cacheKey = col === 'categorias' ? 'cats' : 'occs';
       removeCacheItem(cacheKey, id);
       const data = getCached(cacheKey) || [];
-      col === 'categorias'
-        ? (renderTable('categoriesTableBody', data, 'categorias'), buildCategoryDropdown(data))
-        : (renderTable('occasionsTableBody', data, 'ocasiones'), buildOccasionCheckboxes(data));
+      if (col === 'categorias') {
+        renderTable('categoriesTableBody', data, 'categorias');
+        buildCategoryDropdown(data);
+      } else {
+        renderTable('occasionsTableBody', data, 'ocasiones');
+        buildOccasionCheckboxes(data);
+      }
       updateFilterSelects();
       showToast('Elemento eliminado correctamente.');
-    } catch (err) {
-      showToast('Error al eliminar el elemento.', 'error');
-    }
+    } catch (err) { showToast('Error al eliminar el elemento.', 'error'); }
   });
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
 
-window.editItem = (col, id, nombre) => {
+window.editItem = (col, id, nombre, currentImageUrl) => {
+  const previewId = `modalEditImgPreview_${id}`;
+  const containerId = `modalEditImgContainer_${id}`;
+
   openModal(
     col === 'categorias' ? 'Editar Categoría' : 'Editar Fecha Especial',
-    inputField('modalNombre', nombre, 'Nombre'),
+    `${inputField('modalNombre', nombre, 'Nombre')}
+     <div style="margin-top:1rem;">
+       <div class="image-preview-container active" id="${containerId}" style="margin-bottom:0.6rem;">
+         <img src="${currentImageUrl}" alt="Imagen actual" id="${previewId}" style="max-height:160px;">
+       </div>
+       <div class="file-input-wrapper">
+         <label for="modalItemImg" class="file-label">
+           <i class="fa-solid fa-arrow-up-from-bracket"></i>
+           <span>Cambiar imagen</span>
+         </label>
+         <input type="file" id="modalItemImg" accept="image/*">
+       </div>
+     </div>`,
     async () => {
       const val = document.getElementById('modalNombre').value.trim();
       if (!val) return;
       try {
-        col === 'categorias' ? await updateCategory(id, val) : await updateOccasion(id, val);
-        const cacheKey = col === 'categorias' ? 'cats' : 'occs';
-        updateCacheItem(cacheKey, id, { nombre: val });
-        const data = getCached(cacheKey) || [];
+        const fileInput = document.getElementById('modalItemImg');
+        let newImageUrl = null;
+        if (fileInput && fileInput.files[0]) {
+          await deleteImageIfExists(currentImageUrl);
+          newImageUrl = await uploadImage(
+            fileInput.files[0],
+            col === 'categorias' ? 'categories' : 'occasions'
+          );
+        }
         col === 'categorias'
-          ? (renderTable('categoriesTableBody', data, 'categorias'), buildCategoryDropdown(data))
-          : (renderTable('occasionsTableBody', data, 'ocasiones'), buildOccasionCheckboxes(data));
+          ? await updateCategory(id, val, newImageUrl)
+          : await updateOccasion(id, val, newImageUrl);
+        const cacheKey = col === 'categorias' ? 'cats' : 'occs';
+        const changes  = { nombre: val };
+        if (newImageUrl !== null) changes.imageUrl = newImageUrl;
+        updateCacheItem(cacheKey, id, changes);
+        const data = getCached(cacheKey) || [];
+        if (col === 'categorias') {
+          renderTable('categoriesTableBody', data, 'categorias');
+          buildCategoryDropdown(data);
+        } else {
+          renderTable('occasionsTableBody', data, 'ocasiones');
+          buildOccasionCheckboxes(data);
+        }
         updateFilterSelects();
         showToast('Elemento actualizado correctamente.');
-      } catch (err) {
-        showToast('Error al actualizar el elemento.', 'error');
-      }
+      } catch (err) { showToast('Error al actualizar el elemento.', 'error'); }
     }
   );
+
+  requestAnimationFrame(() => {
+    const fileInput   = document.getElementById('modalItemImg');
+    const previewImg  = document.getElementById(previewId);
+    const previewCont = document.getElementById(containerId);
+    if (!fileInput || !previewImg || !previewCont) return;
+    fileInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewImg.src = e.target.result;
+        previewCont.classList.add('active');
+      };
+      reader.readAsDataURL(file);
+    });
+  });
 };
 
 window.editProduct = (id, nombre, descripcion) => {
@@ -546,22 +592,20 @@ window.editProduct = (id, nombre, descripcion) => {
      </div>`,
     async () => {
       const nuevoNombre = document.getElementById('modalNombre').value.trim();
-      const nuevaDesc = document.getElementById('modalDesc').value.trim();
+      const nuevaDesc   = document.getElementById('modalDesc').value.trim();
       if (!nuevoNombre) return;
       try {
         await updateProduct(id, { nombre: nuevoNombre, descripcion: nuevaDesc });
         const prod = allProducts.find(p => p.id === id);
         if (prod) {
-          prod.nombre = nuevoNombre;
+          prod.nombre      = nuevoNombre;
           prod.descripcion = nuevaDesc;
           invalidateCurrentPage();
           pageCache[currentPage] = { ...pageCache[currentPage], data: [...allProducts] };
         }
         applyFilters();
         showToast('Arreglo actualizado correctamente.');
-      } catch (err) {
-        showToast('Error al actualizar el arreglo.', 'error');
-      }
+      } catch (err) { showToast('Error al actualizar el arreglo.', 'error'); }
     }
   );
 };
@@ -570,22 +614,19 @@ window.removeProduct = async (id, imageUrl) => {
   openModal('Eliminar producto', '<p>¿Confirmas que deseas eliminar este arreglo?</p>', async () => {
     try {
       await deleteProduct(id);
-      const imageRef = ref(storage, imageUrl);
-      await deleteObject(imageRef);
+      await deleteImageIfExists(imageUrl);
       invalidateCurrentPage();
       allProducts = allProducts.filter(p => p.id !== id);
       if (allProducts.length === 0 && currentPage > 1) {
         pageSnapshots = [null];
-        currentPage = 1;
+        currentPage   = 1;
         await fetchPage(1);
       } else {
         pageCache[currentPage] = { ...pageCache[currentPage], data: allProducts };
         applyFilters();
       }
       showToast('Arreglo eliminado correctamente.');
-    } catch (err) {
-      showToast('Error al eliminar el arreglo.', 'error');
-    }
+    } catch (err) { showToast('Error al eliminar el arreglo.', 'error'); }
   });
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
@@ -630,7 +671,7 @@ function renderSectionsTable(sections) {
 }
 
 window.toggleSectionStatusUI = async (event, id, currentStat) => {
-  const badge = event.currentTarget;
+  const badge    = event.currentTarget;
   const newState = !currentStat;
   badge.classList.toggle('active', newState);
   badge.classList.toggle('inactive', !newState);
@@ -656,11 +697,11 @@ window.editSectionUI = (id, nombre, tipo) => {
        <label style="font-size:0.85rem;font-weight:600;color:var(--green-corporate);opacity:0.7;margin-bottom:6px;display:block;">Tipo de opción</label>
        <select id="modalTipo" style="width:100%;padding:13px 16px;background:var(--input-bg);border:1px solid rgba(20,36,23,0.12);border-radius:8px;color:var(--green-corporate);font-size:16px;font-weight:500;outline:none;">
          <option value="imagen" ${tipo === 'imagen' ? 'selected' : ''}>Imagen (ej. flores)</option>
-         <option value="color" ${tipo === 'color' ? 'selected' : ''}>Color (ej. papel, listón)</option>
+         <option value="color"  ${tipo === 'color'  ? 'selected' : ''}>Color (ej. papel, listón)</option>
        </select>
      </div>`,
     async () => {
-      const val = document.getElementById('modalNombre').value.trim();
+      const val       = document.getElementById('modalNombre').value.trim();
       const nuevoTipo = document.getElementById('modalTipo').value;
       if (!val) return;
       try {
@@ -668,9 +709,7 @@ window.editSectionUI = (id, nombre, tipo) => {
         updateCacheItem('custom_sections', id, { nombre: val, tipo: nuevoTipo });
         renderSectionsTable(getCached('custom_sections') || []);
         showToast('Sección actualizada correctamente.');
-      } catch (err) {
-        showToast('Error al actualizar la sección.', 'error');
-      }
+      } catch (err) { showToast('Error al actualizar la sección.', 'error'); }
     }
   );
 };
@@ -683,28 +722,26 @@ window.deleteSectionUI = (id) => {
       clearCache(`options_${id}`);
       renderSectionsTable(getCached('custom_sections') || []);
       showToast('Sección eliminada correctamente.');
-    } catch (err) {
-      showToast('Error al eliminar la sección.', 'error');
-    }
+    } catch (err) { showToast('Error al eliminar la sección.', 'error'); }
   });
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
 
-let currentSectionId = null;
+let currentSectionId   = null;
 let currentSectionTipo = null;
-let optionImgFile = null;
+let optionImgFile      = null;
 
 window.openOptionsPanel = async (sectionId, sectionNombre, tipo) => {
-  currentSectionId = sectionId;
+  currentSectionId   = sectionId;
   currentSectionTipo = tipo;
-  optionImgFile = null;
-  const panel = document.getElementById('panel-options');
-  const title = document.getElementById('optionsSectionTitle');
-  const formImg = document.getElementById('optionImageGroup');
+  optionImgFile      = null;
+  const panel     = document.getElementById('panel-options');
+  const title     = document.getElementById('optionsSectionTitle');
+  const formImg   = document.getElementById('optionImageGroup');
   const formColor = document.getElementById('optionColorGroup');
-  title.textContent = `Opciones — ${sectionNombre}`;
-  formImg.style.display = tipo === 'imagen' ? 'flex' : 'none';
-  formColor.style.display = tipo === 'color' ? 'flex' : 'none';
+  title.textContent       = `Opciones — ${sectionNombre}`;
+  formImg.style.display   = tipo === 'imagen' ? 'flex' : 'none';
+  formColor.style.display = tipo === 'color'  ? 'flex' : 'none';
   document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.crud-section').forEach(s => s.classList.remove('active'));
   panel.classList.add('active');
@@ -712,13 +749,10 @@ window.openOptionsPanel = async (sectionId, sectionNombre, tipo) => {
 };
 
 async function loadOptions(sectionId, tipo) {
-  const tbody = document.getElementById('optionsTableBody');
+  const tbody    = document.getElementById('optionsTableBody');
   const cacheKey = `options_${sectionId}`;
-  const cached = getCached(cacheKey);
-  if (cached) {
-    renderOptionsTable(cached, tipo);
-    return;
-  }
+  const cached   = getCached(cacheKey);
+  if (cached) { renderOptionsTable(cached, tipo); return; }
   tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:2rem;opacity:0.5;">Cargando...</td></tr>`;
   const data = await getOptionsBySection(sectionId);
   setCache(cacheKey, data);
@@ -760,7 +794,7 @@ function renderOptionsTable(data, tipo) {
 }
 
 window.toggleOptionStatusUI = async (event, id, currentStat) => {
-  const badge = event.currentTarget;
+  const badge    = event.currentTarget;
   const newState = !currentStat;
   badge.classList.toggle('active', newState);
   badge.classList.toggle('inactive', !newState);
@@ -786,14 +820,14 @@ window.deleteOptionUI = (id, imageUrl) => {
       removeCacheItem(`options_${currentSectionId}`, id);
       renderOptionsTable(getCached(`options_${currentSectionId}`) || [], currentSectionTipo);
       showToast('Opción eliminada correctamente.');
-    } catch (err) {
-      showToast('Error al eliminar la opción.', 'error');
-    }
+    } catch (err) { showToast('Error al eliminar la opción.', 'error'); }
   });
   document.getElementById('modalSubmitBtn').classList.add('btn-delete-confirm');
 };
 
 window.editOptionUI = (id, nombre, precio, imageUrl, color) => {
+  const previewId   = `modalOptImgPreview_${id}`;
+  const containerId = `modalOptImgContainer_${id}`;
   const fields = `
     ${inputField('modalNombre', nombre, 'Nombre')}
     <div class="input-group" style="margin-top:1rem">
@@ -805,9 +839,17 @@ window.editOptionUI = (id, nombre, precio, imageUrl, color) => {
            <label style="font-size:0.85rem;font-weight:600;color:var(--green-corporate);opacity:0.7;white-space:nowrap;">Color:</label>
            <input type="color" id="modalColor" value="${color || '#ffffff'}" style="width:60px;height:40px;border:1px solid rgba(20,36,23,0.12);border-radius:8px;padding:2px;cursor:pointer;background:var(--input-bg);">
          </div>`
-      : `<div style="margin-top:1rem;font-size:0.82rem;color:var(--green-corporate);opacity:0.6;">Imagen actual: ${imageUrl ? '<a href="' + imageUrl + '" target="_blank">ver</a>' : 'ninguna'}</div>
-         <div class="input-group" style="margin-top:0.5rem">
-           <input type="file" id="modalImg" accept="image/*" style="padding:10px 16px;">
+      : `<div style="margin-top:1rem;">
+           <div class="image-preview-container active" id="${containerId}" style="margin-bottom:0.6rem;">
+             <img src="${imageUrl}" alt="Imagen actual" id="${previewId}" style="max-height:160px;">
+           </div>
+           <div class="file-input-wrapper">
+             <label for="modalImg" class="file-label">
+               <i class="fa-solid fa-arrow-up-from-bracket"></i>
+               <span>Cambiar imagen</span>
+             </label>
+             <input type="file" id="modalImg" accept="image/*">
+           </div>
          </div>`
     }
   `;
@@ -822,41 +864,49 @@ window.editOptionUI = (id, nombre, precio, imageUrl, color) => {
       } else {
         const fileInput = document.getElementById('modalImg');
         if (fileInput && fileInput.files[0]) {
-          const webpBlob = await processToWebp(fileInput.files[0]);
-          const refImg = ref(storage, `custom_options/${Date.now()}.webp`);
-          const uploaded = await uploadBytes(refImg, webpBlob);
-          updateData.imageUrl = await getDownloadURL(uploaded.ref);
-          if (imageUrl) {
-            try { await deleteObject(ref(storage, imageUrl)); } catch (_) {}
-          }
+          await deleteImageIfExists(imageUrl);
+          updateData.imageUrl = await uploadImage(fileInput.files[0], 'custom_options');
         }
       }
       await updateOption(id, updateData);
       updateCacheItem(`options_${currentSectionId}`, id, updateData);
       renderOptionsTable(getCached(`options_${currentSectionId}`) || [], currentSectionTipo);
       showToast('Opción actualizada correctamente.');
-    } catch (err) {
-      showToast('Error al actualizar la opción.', 'error');
-    }
+    } catch (err) { showToast('Error al actualizar la opción.', 'error'); }
   });
+
+  if (currentSectionTipo !== 'color') {
+    requestAnimationFrame(() => {
+      const fileInput   = document.getElementById('modalImg');
+      const previewImg  = document.getElementById(previewId);
+      const previewCont = document.getElementById(containerId);
+      if (!fileInput || !previewImg || !previewCont) return;
+      fileInput.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => { previewImg.src = e.target.result; };
+        reader.readAsDataURL(file);
+      });
+    });
+  }
 };
 
-const optionImgInput = document.getElementById('optionImg');
-const optionImgPreview = document.getElementById('optionImgPreview');
+const optionImgInput          = document.getElementById('optionImg');
+const optionImgPreview        = document.getElementById('optionImgPreview');
 const optionImgPreviewContainer = document.getElementById('optionImgPreviewContainer');
 
 if (optionImgInput) {
   optionImgInput.addEventListener('change', function () {
     const file = this.files[0];
-    if (file) {
-      optionImgFile = file;
-      const reader = new FileReader();
-      reader.onload = e => {
-        optionImgPreview.src = e.target.result;
-        optionImgPreviewContainer.classList.add('active');
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    optionImgFile = file;
+    const reader  = new FileReader();
+    reader.onload = e => {
+      optionImgPreview.src = e.target.result;
+      optionImgPreviewContainer.classList.add('active');
+    };
+    reader.readAsDataURL(file);
   });
 }
 
@@ -872,23 +922,20 @@ document.getElementById('optionForm')?.addEventListener('submit', async e => {
   const nombre = document.getElementById('optionNombre').value.trim();
   const precio = parseFloat(document.getElementById('optionPrecio').value);
   if (!nombre || isNaN(precio)) return;
-  const btn = document.getElementById('optionSubmitBtn');
+  const btn    = document.getElementById('optionSubmitBtn');
   btn.disabled = true;
   try {
     const data = { seccionId: currentSectionId, nombre, precio };
     if (currentSectionTipo === 'imagen') {
       if (!optionImgFile) { showToast('Selecciona una imagen.', 'error'); btn.disabled = false; return; }
-      const webpBlob = await processToWebp(optionImgFile);
-      const refImg = ref(storage, `custom_options/${Date.now()}.webp`);
-      const uploaded = await uploadBytes(refImg, webpBlob);
-      data.imageUrl = await getDownloadURL(uploaded.ref);
+      data.imageUrl = await uploadImage(optionImgFile, 'custom_options');
     } else {
       data.color = document.getElementById('optionColor').value;
     }
-    const docRef = await addOption(data);
-    const newOption = { id: docRef.id, ...data, activo: true };
+    const docRef  = await addOption(data);
+    const newOpt  = { id: docRef.id, ...data, activo: true };
     const cacheKey = `options_${currentSectionId}`;
-    addCacheItem(cacheKey, newOption);
+    addCacheItem(cacheKey, newOpt);
     renderOptionsTable(getCached(cacheKey) || [], currentSectionTipo);
     e.target.reset();
     if (optionImgPreviewContainer) optionImgPreviewContainer.classList.remove('active');
@@ -896,26 +943,22 @@ document.getElementById('optionForm')?.addEventListener('submit', async e => {
     showToast('Opción agregada correctamente.');
   } catch (err) {
     showToast(err.message || 'Error al agregar la opción.', 'error');
-  } finally {
-    btn.disabled = false;
-  }
+  } finally { btn.disabled = false; }
 });
 
 document.getElementById('sectionForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const nombre = document.getElementById('newSectionName').value.trim();
-  const tipo = document.getElementById('newSectionTipo').value;
+  const tipo   = document.getElementById('newSectionTipo').value;
   if (!nombre) return;
   try {
-    const docRef = await addSection({ nombre, tipo });
+    const docRef     = await addSection({ nombre, tipo });
     const newSection = { id: docRef.id, nombre, tipo, activo: true };
     addCacheItem('custom_sections', newSection);
     renderSectionsTable(getCached('custom_sections') || []);
     e.target.reset();
     showToast('Sección agregada correctamente.');
-  } catch (err) {
-    showToast('Error al agregar la sección.', 'error');
-  }
+  } catch (err) { showToast('Error al agregar la sección.', 'error'); }
 });
 
 document.getElementById('btnBackToSections')?.addEventListener('click', () => {
@@ -924,42 +967,40 @@ document.getElementById('btnBackToSections')?.addEventListener('click', () => {
   document.querySelectorAll('.menu-btn').forEach(b => {
     if (b.getAttribute('data-target') === 'panel-custom') b.classList.add('active');
   });
-  currentSectionId = null;
+  currentSectionId   = null;
   currentSectionTipo = null;
 });
 
-document.querySelector('#categoryDropdown .dropdown-trigger')?.addEventListener('click', () => {
-  categoryDropdown.classList.toggle('active');
-});
-
-document.querySelector('#filterDropdown .dropdown-trigger')?.addEventListener('click', () => {
-  filterDropdown.classList.toggle('active');
-});
-
+document.querySelector('#categoryDropdown .dropdown-trigger')?.addEventListener('click', () =>
+  categoryDropdown.classList.toggle('active')
+);
+document.querySelector('#filterDropdown .dropdown-trigger')?.addEventListener('click', () =>
+  filterDropdown.classList.toggle('active')
+);
 document.addEventListener('click', (e) => {
   if (categoryDropdown && !categoryDropdown.contains(e.target)) categoryDropdown.classList.remove('active');
-  if (filterDropdown && !filterDropdown.contains(e.target)) filterDropdown.classList.remove('active');
+  if (filterDropdown   && !filterDropdown.contains(e.target))   filterDropdown.classList.remove('active');
 });
 
 function updateExclusiveLogic() {
-  const categoryVal = document.getElementById('itemCategory').value;
+  const categoryVal      = document.getElementById('itemCategory').value;
   const selectedOccasion = document.querySelector('input[name="occasion"]:checked');
   document.querySelector('.occasions-sect').classList.toggle('disabled-group', categoryVal !== '');
   categoryDropdown.classList.toggle('disabled-group', !!selectedOccasion);
 }
 
-const editModal = document.getElementById('editModal');
-const modalTitle = document.getElementById('modalTitle');
-const modalFields = document.getElementById('modalFormFields');
+const editModal     = document.getElementById('editModal');
+const modalTitle    = document.getElementById('modalTitle');
+const modalFields   = document.getElementById('modalFormFields');
 const closeModalBtn = document.getElementById('closeModalBtn');
-const modalForm = document.getElementById('modalEditForm');
-let currentEditFn = null;
+const modalForm     = document.getElementById('modalEditForm');
+let currentEditFn   = null;
 
 function openModal(title, fields, onSave) {
   const btn = document.getElementById('modalSubmitBtn');
   if (btn) btn.className = 'btn-primary';
   modalTitle.textContent = title;
-  modalFields.innerHTML = fields;
+  modalFields.innerHTML  = fields;
   currentEditFn = onSave;
   editModal.classList.add('active');
 }
@@ -972,11 +1013,10 @@ function closeModal() {
 
 closeModalBtn?.addEventListener('click', closeModal);
 editModal?.addEventListener('click', e => { if (e.target === editModal) closeModal(); });
-
 modalForm?.addEventListener('submit', async e => {
   e.preventDefault();
   if (!currentEditFn) return;
-  const btn = modalForm.querySelector('button[type="submit"]');
+  const btn    = modalForm.querySelector('button[type="submit"]');
   btn.disabled = true;
   await currentEditFn();
   closeModal();
@@ -989,15 +1029,14 @@ function inputField(id, value, placeholder) {
 
 itemImg.addEventListener('change', function () {
   const file = this.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      imagePreview.src = e.target.result;
-      imagePreviewContainer.classList.add('active');
-      document.getElementById('file-name-preview').innerText = file.name;
-    };
-    reader.readAsDataURL(file);
-  }
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    imagePreview.src = e.target.result;
+    imagePreviewContainer.classList.add('active');
+    document.getElementById('file-name-preview').innerText = file.name;
+  };
+  reader.readAsDataURL(file);
 });
 
 document.getElementById('btnRemoveImage')?.addEventListener('click', () => {
@@ -1009,8 +1048,8 @@ document.getElementById('btnRemoveImage')?.addEventListener('click', () => {
 
 document.getElementById('uploadForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  const validationMsg = document.getElementById('validationMessage');
-  const categoryVal = document.getElementById('itemCategory').value;
+  const validationMsg    = document.getElementById('validationMessage');
+  const categoryVal      = document.getElementById('itemCategory').value;
   const selectedOccasion = document.querySelector('input[name="occasion"]:checked');
   if (!categoryVal && !selectedOccasion) {
     validationMsg.style.display = 'block';
@@ -1018,83 +1057,105 @@ document.getElementById('uploadForm')?.addEventListener('submit', async e => {
     return;
   }
   validationMsg.style.display = 'none';
-  const btn = document.getElementById('submitBtn');
-  const status = document.getElementById('status');
-  const itemName = document.getElementById('itemName');
-  const itemDesc = document.getElementById('itemDesc');
+  const btn          = document.getElementById('submitBtn');
+  const status       = document.getElementById('status');
+  const itemName     = document.getElementById('itemName');
+  const itemDesc     = document.getElementById('itemDesc');
   const itemCategory = document.getElementById('itemCategory');
   try {
-    btn.disabled = true;
+    btn.disabled       = true;
     status.style.color = 'inherit';
-    status.innerText = 'Procesando...';
-    const webpBlob = await processToWebp(itemImg.files[0]);
-    const refImg = ref(storage, `catalog/${Date.now()}.webp`);
-    const uploadResult = await uploadBytes(refImg, webpBlob);
-    const url = await getDownloadURL(uploadResult.ref);
+    status.innerText   = 'Procesando...';
+    const url = await uploadImage(itemImg.files[0], 'catalog');
     await addProduct({
-      nombre: itemName.value,
+      nombre:      itemName.value,
       descripcion: itemDesc.value,
-      imageUrl: url,
-      categoria: itemCategory.value,
-      ocasiones: selectedOccasion?.value || null,
-      fecha: new Date().toISOString()
+      imageUrl:    url,
+      categoria:   itemCategory.value,
+      ocasiones:   selectedOccasion?.value || null,
+      fecha:       new Date().toISOString()
     });
-    status.innerText = '¡Arreglo subido con éxito!';
+    status.innerText   = '¡Arreglo subido con éxito!';
     status.style.color = '#00a84d';
     setTimeout(() => { status.innerText = ''; }, 3000);
     e.target.reset();
-    document.getElementById('file-name-preview').innerText = 'Ningún archivo seleccionado';
+    document.getElementById('file-name-preview').innerText   = 'Ningún archivo seleccionado';
     imagePreviewContainer.classList.remove('active');
     document.getElementById('dropdownSelectedText').innerText = 'Ninguna categoría';
     pageSnapshots = [null];
-    pageCache = {};
-    currentPage = 1;
+    pageCache     = {};
+    currentPage   = 1;
     updateExclusiveLogic();
     fetchPage(1);
   } catch (err) {
-    status.innerText = 'Error: ' + err.message;
+    status.innerText   = 'Error: ' + err.message;
     status.style.color = '#ff3b30';
-  } finally {
-    btn.disabled = false;
-  }
+  } finally { btn.disabled = false; }
 });
+
+function bindImgPreview(inputId, previewId, containerId) {
+  const input     = document.getElementById(inputId);
+  const preview   = document.getElementById(previewId);
+  const container = document.getElementById(containerId);
+  if (!input || !preview || !container) return;
+  input.addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => { preview.src = e.target.result; container.classList.add('active'); };
+    reader.readAsDataURL(file);
+  });
+}
+
+bindImgPreview('newCategoryImg', 'newCategoryImgPreview', 'newCategoryImgPreviewContainer');
+bindImgPreview('newOccasionImg', 'newOccasionImgPreview', 'newOccasionImgPreviewContainer');
 
 document.getElementById('categoryForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  const nombre = document.getElementById('newCategoryName').value.trim();
+  const nombre    = document.getElementById('newCategoryName').value.trim();
+  const fileInput = document.getElementById('newCategoryImg');
   if (!nombre) return;
+  if (!fileInput || !fileInput.files[0]) {
+    showToast('Selecciona una imagen para la categoría.', 'error');
+    return;
+  }
   try {
-    const docRef = await addCategory(nombre);
-    const newCat = { id: docRef.id, nombre, activo: true };
+    const imageUrl = await uploadImage(fileInput.files[0], 'categories');
+    const docRef   = await addCategory(nombre, imageUrl);
+    const newCat   = { id: docRef.id, nombre, imageUrl, activo: true };
     addCacheItem('cats', newCat);
     const data = getCached('cats') || [];
     renderTable('categoriesTableBody', data, 'categorias');
     buildCategoryDropdown(data);
     updateFilterSelects();
     e.target.reset();
+    document.getElementById('newCategoryImgPreviewContainer').classList.remove('active');
     showToast('Categoría agregada correctamente.');
-  } catch (err) {
-    showToast('Error al agregar la categoría.', 'error');
-  }
+  } catch (err) { showToast('Error al agregar la categoría.', 'error'); }
 });
 
 document.getElementById('occasionForm')?.addEventListener('submit', async e => {
   e.preventDefault();
-  const nombre = document.getElementById('newOccasionName').value.trim();
+  const nombre    = document.getElementById('newOccasionName').value.trim();
+  const fileInput = document.getElementById('newOccasionImg');
   if (!nombre) return;
+  if (!fileInput || !fileInput.files[0]) {
+    showToast('Selecciona una imagen para la fecha especial.', 'error');
+    return;
+  }
   try {
-    const docRef = await addOccasion(nombre);
-    const newOcc = { id: docRef.id, nombre, activo: true };
+    const imageUrl = await uploadImage(fileInput.files[0], 'occasions');
+    const docRef   = await addOccasion(nombre, imageUrl);
+    const newOcc   = { id: docRef.id, nombre, imageUrl, activo: true };
     addCacheItem('occs', newOcc);
     const data = getCached('occs') || [];
     renderTable('occasionsTableBody', data, 'ocasiones');
     buildOccasionCheckboxes(data);
     updateFilterSelects();
     e.target.reset();
+    document.getElementById('newOccasionImgPreviewContainer').classList.remove('active');
     showToast('Fecha especial agregada correctamente.');
-  } catch (err) {
-    showToast('Error al agregar la fecha especial.', 'error');
-  }
+  } catch (err) { showToast('Error al agregar la fecha especial.', 'error'); }
 });
 
 document.getElementById('logoutBtn')?.addEventListener('click', async () => {
@@ -1103,9 +1164,9 @@ document.getElementById('logoutBtn')?.addEventListener('click', async () => {
 });
 
 document.querySelectorAll('.table-responsive').forEach(el => {
-  el.addEventListener('touchstart', e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true });
-  el.addEventListener('touchmove', e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true });
-  el.addEventListener('touchend', e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true });
+  ['touchstart', 'touchmove', 'touchend'].forEach(evt =>
+    el.addEventListener(evt, e => { e.stopPropagation(); resetInactivityTimer(); }, { passive: true })
+  );
 });
 
 protectRoute(false, () => {

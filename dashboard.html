@@ -9,14 +9,20 @@
   <title>Admin - Diente de León</title>
   <link rel="icon" type="image/png" href="img/favicon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="img/icon_app.jpg">
-  <meta name="apple-mobile-web-app-title" content="Admin DL">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Admin DL">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <style>
     html, body { overscroll-behavior: none; }
     body.loading { display: none !important; }
+    .td-img-placeholder {
+      width: 50px; height: 50px; border-radius: 6px;
+      background: rgba(20,36,23,0.06);
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(20,36,23,0.25); font-size: 1.2rem;
+    }
   </style>
 </head>
 <body class="loading">
@@ -43,7 +49,6 @@
         <button class="menu-btn" data-target="panel-view-catalog">
           <i class="fa-solid fa-seedling"></i> <span>Arreglos publicados</span>
         </button>
-        
         <button class="menu-btn" data-target="panel-categories">
           <i class="fa-solid fa-tags"></i> <span>Categorías Fijas</span>
         </button>
@@ -64,6 +69,7 @@
     </aside>
 
     <main class="content-panel">
+
       <section id="panel-upload" class="crud-section active">
         <div class="dashboard-card">
           <h2>Subir Nuevo Arreglo</h2>
@@ -148,6 +154,16 @@
               <i class="fa-solid fa-folder-plus input-icon"></i>
               <input type="text" id="newCategoryName" placeholder="Ej. Canastas" required>
             </div>
+            <div class="file-input-wrapper">
+              <label for="newCategoryImg" class="file-label">
+                <i class="fa-solid fa-image"></i>
+                <span>Imagen representativa</span>
+              </label>
+              <input type="file" id="newCategoryImg" accept="image/*" required>
+            </div>
+            <div class="image-preview-container" id="newCategoryImgPreviewContainer">
+              <img src="" alt="Vista previa" id="newCategoryImgPreview">
+            </div>
             <button type="submit" class="btn-primary">Agregar Categoría</button>
           </form>
         </div>
@@ -156,7 +172,7 @@
           <div class="table-responsive">
             <table>
               <thead>
-                <tr><th>Nombre de la Categoría</th><th>Estatus</th><th>Acciones</th></tr>
+                <tr><th>Imagen</th><th>Nombre</th><th>Estatus</th><th>Acciones</th></tr>
               </thead>
               <tbody id="categoriesTableBody"></tbody>
             </table>
@@ -172,6 +188,16 @@
               <i class="fa-solid fa-calendar-plus input-icon"></i>
               <input type="text" id="newOccasionName" placeholder="Ej. Cumpleaños" required>
             </div>
+            <div class="file-input-wrapper">
+              <label for="newOccasionImg" class="file-label">
+                <i class="fa-solid fa-image"></i>
+                <span>Imagen representativa</span>
+              </label>
+              <input type="file" id="newOccasionImg" accept="image/*" required>
+            </div>
+            <div class="image-preview-container" id="newOccasionImgPreviewContainer">
+              <img src="" alt="Vista previa" id="newOccasionImgPreview">
+            </div>
             <button type="submit" class="btn-primary">Agregar Fecha Especial</button>
           </form>
         </div>
@@ -180,7 +206,7 @@
           <div class="table-responsive">
             <table>
               <thead>
-                <tr><th>Nombre de la Ocasión</th><th>Estatus</th><th>Acciones</th></tr>
+                <tr><th>Imagen</th><th>Nombre</th><th>Estatus</th><th>Acciones</th></tr>
               </thead>
               <tbody id="occasionsTableBody"></tbody>
             </table>
@@ -226,7 +252,6 @@
           </button>
           <h2 id="optionsSectionTitle">Opciones</h2>
         </div>
-
         <div class="dashboard-card mb-2">
           <h2>Agregar Opción</h2>
           <form id="optionForm">
@@ -238,7 +263,6 @@
               <i class="fa-solid fa-dollar-sign input-icon"></i>
               <input type="number" id="optionPrecio" placeholder="Precio" min="0" step="0.01" required>
             </div>
-
             <div id="optionImageGroup" style="display:none;flex-direction:column;gap:0.8rem;">
               <div class="file-input-wrapper">
                 <label for="optionImg" class="file-label">
@@ -252,7 +276,6 @@
                 <img src="" alt="Vista previa" id="optionImgPreview">
               </div>
             </div>
-
             <div id="optionColorGroup" style="display:none;flex-direction:column;gap:0.5rem;">
               <label style="font-size:0.85rem;font-weight:600;color:var(--green-corporate);opacity:0.7;">Color:</label>
               <div style="display:flex;align-items:center;gap:12px;">
@@ -260,11 +283,9 @@
                 <span style="font-size:0.85rem;color:var(--green-corporate);opacity:0.6;">Selecciona el color representativo</span>
               </div>
             </div>
-
             <button type="submit" id="optionSubmitBtn" class="btn-primary">Agregar Opción</button>
           </form>
         </div>
-
         <div class="management-card">
           <h3>Opciones Registradas</h3>
           <div class="table-responsive">
@@ -300,7 +321,6 @@
             <div id="bannerStatus"></div>
           </form>
         </div>
-
         <div class="management-card">
           <h3>Banners Guardados</h3>
           <p style="font-size:0.82rem;color:var(--green-corporate);opacity:0.55;margin-bottom:1.2rem;">
@@ -316,6 +336,7 @@
           </div>
         </div>
       </section>
+
     </main>
   </div>
 
